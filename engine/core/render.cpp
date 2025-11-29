@@ -155,5 +155,14 @@ void Render::drawFrame(const RenderFrame &frame) {
 	for (auto &spr : frame.sprites) {
 		drawSprite(window, spr, 1);
 	}
+	
+	// Draw health bars on top
+	window.draw(frame.healthBarVertices);
+	
+	// Draw UI overlay (for game over screen, etc.)
+	window.draw(frame.uiOverlayVertices);
+	
+	// Draw UI text (for game over message, etc.)
+	window.draw(frame.uiTextVertices);
 }
 } // namespace engine

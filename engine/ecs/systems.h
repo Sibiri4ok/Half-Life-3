@@ -90,4 +90,79 @@ entt::entity createStaticObject(entt::registry &registry, const sf::Vector2f &po
 								const std::string &textureName,
 								const sf::IntRect &textureRect);
 
+/**
+ * @brief Handles weapon shooting mechanics and projectile creation.
+ * @param registry Reference to the ECS registry.
+ * @param input Reference to the input system for shooting commands.
+ * @param dt Delta time in seconds.
+ */
+void weaponSystem(entt::registry &registry, const engine::Input &input, float dt);
+
+/**
+ * @brief Updates projectile movement and handles lifetime.
+ * @param registry Reference to the ECS registry.
+ * @param tiles Reference to the world tile data for collision detection.
+ * @param worldWidth Width of the world in tiles.
+ * @param worldHeight Height of the world in tiles.
+ * @param dt Delta time in seconds.
+ */
+void projectileSystem(entt::registry &registry, std::vector<engine::Tile> &tiles,
+					  int worldWidth, int worldHeight, float dt);
+
+/**
+ * @brief Renders weapon displays attached to entities.
+ * @param registry Reference to the ECS registry.
+ * @param frame Reference to the render frame for collecting draw commands.
+ * @param camera Reference to the camera for positioning.
+ * @param imageManager Reference to the image manager for texture access.
+ */
+void weaponDisplaySystem(entt::registry &registry, engine::RenderFrame &frame,
+						 const engine::Camera &camera,
+						 engine::ImageManager &imageManager);
+
+/**
+ * @brief Handles damage from projectile hits.
+ * @param registry Reference to the ECS registry.
+ */
+void damageSystem(entt::registry &registry);
+
+/**
+ * @brief Renders health bars above entities.
+ * @param registry Reference to the ECS registry.
+ * @param frame Reference to the render frame for collecting draw commands.
+ * @param camera Reference to the camera for positioning.
+ */
+void healthBarSystem(entt::registry &registry, engine::RenderFrame &frame,
+					 const engine::Camera &camera);
+
+/**
+ * @brief AI system for NPC combat behavior.
+ * @param registry Reference to the ECS registry.
+ * @param input Reference to the input system.
+ * @param dt Delta time in seconds.
+ */
+void aiCombatSystem(entt::registry &registry, const engine::Input &input, float dt);
+
+/**
+ * @brief Handles entity death and cleanup.
+ * @param registry Reference to the ECS registry.
+ */
+void deathSystem(entt::registry &registry);
+
+/**
+ * @brief Updates and removes expired damage numbers.
+ * @param registry Reference to the ECS registry.
+ * @param dt Delta time in seconds.
+ */
+void damageNumberSystem(entt::registry &registry, float dt);
+
+/**
+ * @brief Renders floating damage numbers above entities.
+ * @param registry Reference to the ECS registry.
+ * @param frame Reference to the render frame for collecting draw commands.
+ * @param camera Reference to the camera for positioning.
+ */
+void damageNumberRenderSystem(entt::registry &registry, engine::RenderFrame &frame,
+							 const engine::Camera &camera);
+
 } // namespace systems

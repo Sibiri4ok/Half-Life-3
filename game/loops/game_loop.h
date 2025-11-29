@@ -78,6 +78,25 @@ class GameLoop : public engine::ILoop {
 	entt::registry m_registry;
 
 	engine::Engine *m_engine = nullptr; ///< Pointer to the main engine instance
+	bool m_playerDied = false; ///< Flag tracking if player has died
+	float m_gameOverTimer = 0.f; ///< Timer for game over screen display
+	bool m_playerWon = false; ///< Flag tracking if player has won
+	float m_winTimer = 0.f; ///< Timer for win screen display
+	
+	/**
+	 * @brief Weapon types configuration.
+	 */
+	struct WeaponType {
+		float fireRate;
+		float bulletSpeed;
+		float damage;
+		std::string textureName;
+		std::string shootTextureName;
+	};
+	
+	std::vector<WeaponType> m_weaponTypes; ///< Available weapon types
+	int m_currentWeaponIndex = 0; ///< Current weapon index (0-2)
+	entt::entity m_playerEntity = entt::null; ///< Player entity reference
 
 	/**
 	 * @brief Updates animation states based on entity movement.
@@ -87,6 +106,43 @@ class GameLoop : public engine::ILoop {
 	 * Manages animation state changes and frame resetting.
 	 */
 	void gameAnimationSystem(float dt);
+
+	/**
+	 * @brief Renders the game over UI overlay and message.
+	 * @param frame Reference to the render frame for collecting draw commands.
+	 * @param camera Reference to the camera for positioning.
+	 *
+	 * Draws a semi-transparent overlay and "GAME OVER" message when player dies.
+	 */
+	void renderGameOverScreen(engine::RenderFrame &frame, engine::Camera &camera);
+
+	/**
+	 * @brief Renders the win UI overlay and message.
+	 * @param frame Reference to the render frame for collecting draw commands.
+	 * @param camera Reference to the camera for positioning.
+	 *
+	 * Draws a semi-transparent overlay and "YOU WIN" message when player wins.
+	 */
+	void renderWinScreen(engine::RenderFrame &frame, engine::Camera &camera);
+
+	/**
+	 * @brief Checks if all enemies are dead and player has won.
+	 * @return True if player has won (all enemies dead), false otherwise.
+	 */
+	bool checkPlayerWin() const;
+
+	/**
+	 * @brief Handles weapon switching for the player.
+	 * @param input Reference to the input system for reading user commands.
+	 */
+	void handleWeaponSwitching(const engine::Input &input);
+
+	/**
+	 * @brief Applies weapon configuration to player entity.
+	 * @param playerEntity Player entity to apply weapon to.
+	 * @param weaponIndex Index of weapon type to apply (0-2).
+	 */
+	void applyWeaponToPlayer(entt::entity playerEntity, int weaponIndex);
 
 	int width;	///< World width in tile units
 	int height; ///< World height in tile units

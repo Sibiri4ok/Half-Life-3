@@ -4,6 +4,7 @@
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <entt/entt.hpp>
 #include <string>
 #include <unordered_map>
 
@@ -88,5 +89,86 @@ struct ChasingPlayer {};
  * @brief Tag component identifying player-controlled entities.
  */
 struct PlayerControlled {};
+
+/**
+ * @brief Component representing a weapon that can shoot projectiles.
+ */
+struct Weapon {
+	float fireRate = 0.5f;		  // Time between shots in seconds
+	float timeSinceLastShot = 0.f; // Accumulated time since last shot
+	float bulletSpeed = 15.f;	  // Speed of bullets
+	float damage = 10.f;			  // Damage dealt by bullets
+};
+
+/**
+ * @brief Component representing a projectile (bullet).
+ */
+struct Projectile {
+	sf::Vector2f direction; // Direction of movement
+	float lifetime = 3.f;	// Time before auto-destruction
+	float timeAlive = 0.f;	// Time since creation
+};
+
+/**
+ * @brief Tag component indicating entity is currently shooting.
+ */
+struct IsShooting {
+	float animationTime = 0.f; // Time for muzzle flash animation
+};
+
+/**
+ * @brief Component for displaying a weapon attached to an entity.
+ */
+struct WeaponDisplay {
+	std::string textureName = "game/assets/weapons/pistol-idle.png";
+	std::string shootTextureName = "game/assets/weapons/pistol-shoot.png"; // Texture when shooting
+	sf::Vector2f offset = {0.3f, 0.f}; // Offset from entity position
+	sf::Vector2f size = {32.f, 32.f};
+};
+
+/**
+ * @brief Component representing entity health.
+ */
+struct Health {
+	float current = 100.f; // Current health points
+	float maximum = 100.f; // Maximum health points
+	bool isDead = false;   // Flag for death state
+};
+
+/**
+ * @brief Component representing damage dealt by projectile.
+ */
+struct Damage {
+	float amount = 10.f;					// Damage amount
+	entt::entity owner = entt::null;		// Entity that fired this projectile
+	bool hasOwner = false;					// Whether owner is set
+};
+
+/**
+ * @brief Tag component indicating entity is dead.
+ */
+struct Dead {};
+
+/**
+ * @brief Component for displaying floating damage numbers.
+ */
+struct DamageNumber {
+	float amount; ///< Damage amount to display
+	float lifetime = 1.5f; ///< Time before disappearing
+	float timeAlive = 0.f; ///< Time since creation
+	sf::Vector2f position; ///< World position where damage occurred
+};
+
+/**
+ * @brief Component for AI combat behavior.
+ */
+struct AICombat {
+	float shootCooldown = 0.f;			// Time since last shot
+	float shootInterval = 1.5f;			// Time between shots
+	float detectionRange = 10.f;		// Range to detect enemies
+	float shootingRange = 8.f;			// Range to start shooting
+	entt::entity target = entt::null;	// Current target
+	bool hasTarget = false;				// Whether target is set
+};
 
 } // namespace engine
