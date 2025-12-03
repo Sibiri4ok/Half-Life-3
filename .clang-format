@@ -1,0 +1,8 @@
+BasedOnStyle: LLVM
+ColumnLimit: 110
+PointerAlignment: Right
+
+AlignAfterOpenBracket: DontAlign
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None
