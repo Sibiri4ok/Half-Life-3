@@ -1,5 +1,6 @@
 #include "systems.h"
 
+#include "core/camera.h"
 #include "ecs/components.h"
 #include <cmath>
 
@@ -49,6 +50,41 @@ void gameAnimationSystem(entt::registry &registry, float dt) {
       anim.state = newState;
       anim.frameIdx = 0;
       anim.frameTime = 0.f;
+    }
+  }
+}
+
+void gameInputSystem(entt::registry &registry, const engine::Input &input, engine::Camera &camera) {
+  auto view = registry.view<engine::Velocity, engine::PlayerControlled, engine::Animation>();
+
+  for (auto entity : view) {
+    auto &vel = view.get<engine::Velocity>(entity);
+    auto &anim = view.get<engine::Animation>(entity);
+    vel.value = {0.f, 0.f};
+
+    if (input.isKeyDown(sf::Keyboard::Key::W)) {
+      vel.value.y -= 1.f;
+    }
+    if (input.isKeyDown(sf::Keyboard::Key::S)) {
+      vel.value.y += 1.f;
+    }
+    if (input.isKeyDown(sf::Keyboard::Key::A)) {
+      vel.value.x -= 1.f;
+    }
+    if (input.isKeyDown(sf::Keyboard::Key::D)) {
+      vel.value.x += 1.f;
+    }
+
+    float length = std::sqrt(vel.value.x * vel.value.x + vel.value.y * vel.value.y);
+    if (length > 0.f) {
+      vel.value /= length;
+      vel.value = camera.screenToWorld(vel.value);
+
+      if (std::abs(vel.value.x) > std::abs(vel.value.y)) {
+        anim.row = (vel.value.x > 0.f) ? 1 : 2; // right=1, left=2
+      } else {
+        anim.row = (vel.value.y > 0.f) ? 0 : 3; // down=0, up=3
+      }
     }
   }
 }

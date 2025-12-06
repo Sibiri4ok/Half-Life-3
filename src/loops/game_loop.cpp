@@ -68,13 +68,13 @@ void GameLoop::init() {
       {1, {"assets/critters/wolf/wolf-run.png", 8, 0.08f, frameRect}},
   };
 
-  auto wolf = systems::createNPC(m_registry, {2.f, 2.f}, targetWolfSize, wolfClips, 5.f);
+  auto wolf = systems::createNPC(m_registry, {2.f, 2.f}, targetWolfSize, wolfClips, 200.f);
   m_registry.emplace<engine::PlayerControlled>(wolf);
   m_registry.emplace<engine::CastsShadow>(wolf);
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
-  systems::playerInputSystem(m_registry, input);
+  gameInputSystem(m_registry, input, m_engine->camera);
   systems::npcFollowPlayerSystem(m_registry, dt);
   systems::npcWanderSystem(m_registry, dt);
   gameMovementSystem(m_registry, tiles, width, height, dt);
