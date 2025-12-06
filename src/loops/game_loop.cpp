@@ -19,6 +19,9 @@ GameLoop::GameLoop() {
 
 void GameLoop::init() {
   m_engine = engine::Engine::get();
+  m_engine->camera.size = {1200.f, 800.f};
+  m_engine->render.getWindow().setSize({1200u, 800u});
+
   sf::Vector2f worldCenter = {width / 2.0f, height / 2.0f};
   sf::Vector2f screenCenter = m_engine->camera.worldToScreen(worldCenter);
   m_engine->camera.position = screenCenter;
