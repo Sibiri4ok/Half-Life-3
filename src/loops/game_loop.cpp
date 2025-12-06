@@ -11,6 +11,7 @@
 #include "ecs/utils.h"
 #include "ecs/world_loader.h"
 #include "resources/image_manager.h"
+#include "systems.h"
 
 GameLoop::GameLoop() {
   engine::WorldLoader::loadWorldFromJson("assets/worlds/meadow.json", width, height, tileTextures, tiles);
@@ -67,45 +68,18 @@ void GameLoop::init() {
       {1, {"assets/critters/wolf/wolf-run.png", 8, 0.08f, frameRect}},
   };
 
-  auto wolf = systems::createNPC(m_registry, {5.f, 5.f}, targetWolfSize, wolfClips, 5.f);
+  auto wolf = systems::createNPC(m_registry, {2.f, 2.f}, targetWolfSize, wolfClips, 5.f);
   m_registry.emplace<engine::PlayerControlled>(wolf);
   m_registry.emplace<engine::CastsShadow>(wolf);
-
-  auto wolf1 = systems::createNPC(m_registry, {8.f, 8.f}, targetWolfSize, wolfClips, 2.5f);
-  m_registry.emplace<engine::ChasingPlayer>(wolf1);
-  m_registry.emplace<engine::CastsShadow>(wolf1);
-
-  for (int i = 0; i < 2; i++) {
-    auto npc = systems::createNPC(m_registry, {i + 10.f, 0.f}, targetWolfSize, wolfClips, 1.f);
-    m_registry.emplace<engine::CastsShadow>(npc);
-  }
-}
-
-void GameLoop::gameAnimationSystem(float dt) {
-  auto view = m_registry.view<engine::Animation, engine::Velocity, engine::Renderable>();
-
-  for (auto entity : view) {
-    auto &anim = view.get<engine::Animation>(entity);
-    auto &vel = view.get<engine::Velocity>(entity);
-    auto &render = view.get<engine::Renderable>(entity);
-
-    int newState = (std::sqrt(vel.value.x * vel.value.x + vel.value.y * vel.value.y) > 0.1f) ? 1 : 0;
-
-    if (anim.clips.find(newState) != anim.clips.end() && anim.state != newState) {
-      anim.state = newState;
-      anim.frameIdx = 0;
-      anim.frameTime = 0.f;
-    }
-  }
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
   systems::playerInputSystem(m_registry, input);
   systems::npcFollowPlayerSystem(m_registry, dt);
   systems::npcWanderSystem(m_registry, dt);
-  systems::movementSystem(m_registry, tiles, width, height, dt);
+  gameMovementSystem(m_registry, tiles, width, height, dt);
   systems::animationSystem(m_registry, dt);
-  gameAnimationSystem(dt);
+  gameAnimationSystem(m_registry, dt);
 
   // camera follow
   auto playerView = m_registry.view<const engine::Position, const engine::PlayerControlled>();

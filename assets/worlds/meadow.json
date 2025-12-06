@@ -51,61 +51,13 @@
                 }
             },
             {
-                "posX": -5,
-                "posY": -8,
-                "sizeX": 10,
-                "sizeY": 16,
+                "posX": -9,
+                "posY": -5,
+                "sizeX": 4,
+                "sizeY": 8,
                 "tile": {
                     "textures_keys": [
                         2
-                    ],
-                    "solid": true
-                }
-            },
-            {
-                "posX": -11,
-                "posY": -11,
-                "sizeX": 2,
-                "sizeY": 6,
-                "tile": {
-                    "textures_keys": [
-                        2
-                    ],
-                    "solid": true
-                }
-            },
-            {
-                "posX": 11,
-                "posY": -10,
-                "sizeX": 1,
-                "sizeY": 2,
-                "tile": {
-                    "textures_keys": [
-                        3
-                    ],
-                    "solid": true
-                }
-            },
-            {
-                "posX": 7,
-                "posY": -8,
-                "sizeX": 1,
-                "sizeY": 1,
-                "tile": {
-                    "textures_keys": [
-                        3
-                    ],
-                    "solid": true
-                }
-            },
-            {
-                "posX": 2,
-                "posY": 9,
-                "sizeX": 1,
-                "sizeY": 1,
-                "tile": {
-                    "textures_keys": [
-                        3
                     ],
                     "solid": true
                 }

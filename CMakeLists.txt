@@ -15,3 +15,7 @@ file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS
 
 add_executable(half_life_3 ${GAME_SOURCES})
 target_link_libraries(half_life_3 PRIVATE engine)
+
+target_include_directories(half_life_3 PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
