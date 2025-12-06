@@ -10,12 +10,14 @@ void gameMovementSystem(entt::registry &registry,
     int worldHeight,
     float dt,
     engine::Camera &camera) {
-  auto view = registry.view<engine::Position, const engine::Velocity>();
+  auto view = registry.view<engine::Position, const engine::Velocity, const engine::Renderable>();
   auto getIndex = [&](int x, int y) { return y * worldWidth + x; };
 
   for (auto entity : view) {
     auto &pos = view.get<engine::Position>(entity);
     const auto &vel = view.get<const engine::Velocity>(entity);
+    const auto &render = view.get<const engine::Renderable>(entity);
+    const auto &targetSize = render.targetSize;
 
     sf::Vector2f newPos = pos.value;
     sf::Vector2f delta = vel.value * dt;
@@ -31,10 +33,17 @@ void gameMovementSystem(entt::registry &registry,
       return !tiles[getIndex(tileX, tileY)].solid;
     };
 
-    if (canMove(pos.value.x + delta.x, pos.value.y))
+    auto screenPos = camera.worldToScreen(pos.value);
+    screenPos.y += targetSize.y * 0.4f; // check base of the sprite
+    pos.value = camera.screenToWorld(screenPos);
+    if (canMove(pos.value.x + delta.x, pos.value.y)) {
+      pos.value.x += delta.x;
       newPos.x += delta.x;
-    if (canMove(newPos.x, pos.value.y + delta.y))
+    }
+    if (canMove(pos.value.x, pos.value.y + delta.y)) {
+      pos.value.y += delta.y;
       newPos.y += delta.y;
+    }
 
     pos.value = newPos;
   }
