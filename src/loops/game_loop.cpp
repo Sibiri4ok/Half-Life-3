@@ -28,8 +28,8 @@ void GameLoop::init() {
 
   // Create and generate world tiles once
 
-  const int tileWidth = 32.f;
-  const int tileHeight = 16.f;
+  const int tileWidth = 64.f;
+  const int tileHeight = 32.f;
   m_engine->camera.setTileSize(tileWidth, tileHeight);
 
   auto tileImages = engine::makeTileData(tileTextures, m_engine->imageManager);
@@ -62,26 +62,24 @@ void GameLoop::init() {
 
   // Create entities (player, NPC, etc.)
 
-  sf::Vector2f targetWolfSize{64.f, 64.f};
-  sf::IntRect frameRect({0, 0}, {64, 64});
+  sf::Vector2f mainHeroSize{56.f, 60.f};
+  sf::IntRect frameRect({0, 0}, {56, 60});
 
-  // Wolf
-  std::unordered_map<int, engine::AnimationClip> wolfClips = {
-      {0, {"assets/critters/wolf/wolf-idle.png", 4, 0.15f, frameRect}},
-      {1, {"assets/critters/wolf/wolf-run.png", 8, 0.08f, frameRect}},
+  std::unordered_map<int, engine::AnimationClip> mainHeroClips = {
+      {0, {"assets/main_hero/man_idle.png", 12, 0.15f, frameRect}},
+      {1, {"assets/main_hero/man_walk.png", 6, 0.08f, frameRect}},
   };
 
-  auto wolf = systems::createNPC(m_registry, {2.f, 2.f}, targetWolfSize, wolfClips, 200.f);
-  m_registry.emplace<engine::PlayerControlled>(wolf);
-  m_registry.emplace<engine::CastsShadow>(wolf);
+  auto main_hero = systems::createNPC(m_registry, {2.f, 2.f}, mainHeroSize, mainHeroClips, 200.f);
+  m_registry.emplace<engine::PlayerControlled>(main_hero);
+  m_registry.emplace<engine::CastsShadow>(main_hero);
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
-  gameInputSystem(m_registry, input, m_engine->camera);
-  systems::npcFollowPlayerSystem(m_registry, dt);
-  systems::npcWanderSystem(m_registry, dt);
-  gameMovementSystem(m_registry, tiles, width, height, dt);
-  systems::animationSystem(m_registry, dt);
+  gameInputSystem(m_registry, input);
+  //   systems::npcFollowPlayerSystem(m_registry, dt);
+  //   systems::npcWanderSystem(m_registry, dt);
+  gameMovementSystem(m_registry, tiles, width, height, dt, m_engine->camera);
   gameAnimationSystem(m_registry, dt);
 
   // camera follow

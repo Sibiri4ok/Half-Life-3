@@ -1,13 +1,13 @@
 {
     "world": {
         "cereal_class_version": 0,
-        "world_height": 30,
-        "world_width": 30,
+        "world_height": 13,
+        "world_width": 13,
         "textures": [
             {
                 "key": 0,
                 "value": {
-                    "texture_src": "assets/tileset/tile_022.png",
+                    "texture_src": "assets/grass.png",
                     "height": 0,
                     "is_ground": true
                 }
@@ -23,27 +23,15 @@
         ],
         "areas": [
             {
-                "posX": -15,
-                "posY": -15,
-                "sizeX": 30,
-                "sizeY": 30,
+                "posX": -6,
+                "posY": -6,
+                "sizeX": 13,
+                "sizeY": 13,
                 "tile": {
                     "textures_keys": [
                         0
                     ],
                     "solid": false
-                }
-            },
-            {
-                "posX": -9,
-                "posY": -5,
-                "sizeX": 4,
-                "sizeY": 8,
-                "tile": {
-                    "textures_keys": [
-                        1
-                    ],
-                    "solid": true
                 }
             }
         ]

@@ -4,18 +4,22 @@
 #include "ecs/components.h"
 #include <cmath>
 
-void gameMovementSystem(
-    entt::registry &registry, std::vector<engine::Tile> &tiles, int worldWidth, int worldHeight, float dt) {
-  auto view = registry.view<engine::Position, const engine::Velocity, const engine::Speed>();
+void gameMovementSystem(entt::registry &registry,
+    std::vector<engine::Tile> &tiles,
+    int worldWidth,
+    int worldHeight,
+    float dt,
+    engine::Camera &camera) {
+  auto view = registry.view<engine::Position, const engine::Velocity>();
   auto getIndex = [&](int x, int y) { return y * worldWidth + x; };
 
   for (auto entity : view) {
     auto &pos = view.get<engine::Position>(entity);
     const auto &vel = view.get<const engine::Velocity>(entity);
-    const auto &speed = view.get<const engine::Speed>(entity);
 
     sf::Vector2f newPos = pos.value;
-    sf::Vector2f delta = vel.value * speed.value * dt;
+    sf::Vector2f delta = vel.value * dt;
+    delta = camera.screenToWorld(delta);
 
     auto canMove = [&](float newX, float newY) {
       int tileX = static_cast<int>(std::floor(newX)) - 1;
@@ -44,22 +48,51 @@ void gameAnimationSystem(entt::registry &registry, float dt) {
     auto &vel = view.get<engine::Velocity>(entity);
     auto &render = view.get<engine::Renderable>(entity);
 
-    int newState = (std::sqrt(vel.value.x * vel.value.x + vel.value.y * vel.value.y) > 0.1f) ? 1 : 0;
+    float moving = sqrtf(vel.value.x * vel.value.x + vel.value.y * vel.value.y);
+    engine::Direction newDir = anim.direction;
+    int newState = moving > 0.0f ? 1 : 0; // 0 - idle, 1 - walk
 
-    if (anim.clips.find(newState) != anim.clips.end() && anim.state != newState) {
+    auto it = anim.clips.find(newState);
+    if (it == anim.clips.end())
+      continue;
+
+    const auto &clip = it->second;
+    if (clip.frameCount <= 1)
+      continue;
+
+    anim.frameTime += dt;
+
+    if (!moving) {
+      newDir = anim.direction;
+    } else if (std::abs(vel.value.y) > std::abs(vel.value.x)) {
+      newDir = vel.value.y > 0.f ? engine::Direction::Down : engine::Direction::Up;
+    } else if (std::abs(vel.value.x) > std::abs(vel.value.y)) {
+      newDir = vel.value.x > 0.f ? engine::Direction::Left : engine::Direction::Right;
+    }
+
+    if (anim.direction != newDir || anim.state != newState) {
       anim.state = newState;
+      anim.direction = newDir;
+      anim.row = static_cast<int>(newDir);
       anim.frameIdx = 0;
       anim.frameTime = 0.f;
+    }
+
+    while (anim.frameTime >= clip.frameDuration) {
+      anim.frameTime -= clip.frameDuration;
+      anim.frameIdx = (anim.frameIdx + 1) % clip.frameCount;
     }
   }
 }
 
-void gameInputSystem(entt::registry &registry, const engine::Input &input, engine::Camera &camera) {
-  auto view = registry.view<engine::Velocity, engine::PlayerControlled, engine::Animation>();
+void gameInputSystem(entt::registry &registry, const engine::Input &input) {
+  auto view = registry.view<engine::Velocity, engine::Speed, engine::PlayerControlled, engine::Animation>();
 
   for (auto entity : view) {
     auto &vel = view.get<engine::Velocity>(entity);
     auto &anim = view.get<engine::Animation>(entity);
+    auto &speed = view.get<engine::Speed>(entity);
+
     vel.value = {0.f, 0.f};
 
     if (input.isKeyDown(sf::Keyboard::Key::W)) {
@@ -78,13 +111,7 @@ void gameInputSystem(entt::registry &registry, const engine::Input &input, engin
     float length = std::sqrt(vel.value.x * vel.value.x + vel.value.y * vel.value.y);
     if (length > 0.f) {
       vel.value /= length;
-      vel.value = camera.screenToWorld(vel.value);
-
-      if (std::abs(vel.value.x) > std::abs(vel.value.y)) {
-        anim.row = (vel.value.x > 0.f) ? 1 : 2; // right=1, left=2
-      } else {
-        anim.row = (vel.value.y > 0.f) ? 0 : 3; // down=0, up=3
-      }
+      vel.value *= speed.value;
     }
   }
 }
