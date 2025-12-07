@@ -2,6 +2,7 @@
 
 #include <random>
 
+#include "components.h"
 #include "core/camera.h"
 #include "core/engine.h"
 #include "core/render.h"
@@ -60,25 +61,41 @@ void GameLoop::init() {
   m_engine->render.generateTileMapVertices(
       m_staticMapPoints, m_engine->camera, staticTiles, width, height, tileImages);
 
-  // Create entities (player, NPC, etc.)
-
-  sf::Vector2f mainHeroSize{56.f, 60.f};
-  sf::IntRect frameRect({0, 0}, {56, 60});
+  // Create player
+  sf::Vector2f mainSize{56.f, 60.f};
+  sf::IntRect mainRect({0, 0}, {56, 60});
 
   std::unordered_map<int, engine::AnimationClip> mainHeroClips = {
-      {0, {"assets/main_hero/man_idle.png", 12, 0.15f, frameRect}},
-      {1, {"assets/main_hero/man_walk.png", 6, 0.08f, frameRect}},
+      {0, {"assets/npc/main_idle.png", 12, 0.15f, mainRect}},
+      {1, {"assets/npc/main_walk.png", 6, 0.08f, mainRect}},
   };
 
-  auto main_hero = systems::createNPC(m_registry, {2.f, 2.f}, mainHeroSize, mainHeroClips, 200.f);
+  auto main_hero = systems::createNPC(m_registry, {2.f, 2.f}, mainSize, mainHeroClips, 200.f);
   m_registry.emplace<engine::PlayerControlled>(main_hero);
   m_registry.emplace<engine::CastsShadow>(main_hero);
+  m_registry.emplace<HP>(main_hero, HP{100, 100});
+
+  // Create minotaurs
+  for (int i = 0; i < 3; ++i) {
+    sf::Vector2f minoSize{60.f, 60.f};
+    sf::IntRect minoRect({0, 0}, {60, 60});
+
+    std::unordered_map<int, engine::AnimationClip> npcClips = {
+        {0, {"assets/npc/minotaur_idle.png", 12, 0.08f, minoRect}},
+        {1, {"assets/npc/minotaur_walk.png", 18, 0.08f, minoRect}}};
+    auto minotaur =
+        systems::createNPC(m_registry, {float(i * 2 + 1), float(i * 2 + 1)}, minoSize, npcClips, 60.f);
+    m_registry.emplace<SideViewOnly>(minotaur);
+    m_registry.emplace<engine::ChasingPlayer>(minotaur);
+    m_registry.emplace<engine::CastsShadow>(minotaur);
+    m_registry.emplace<HP>(minotaur, HP{20, 20});
+  }
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
+  engine::Camera &camera = m_engine->camera;
   gameInputSystem(m_registry, input);
-  //   systems::npcFollowPlayerSystem(m_registry, dt);
-  //   systems::npcWanderSystem(m_registry, dt);
+  gameNpcFollowPlayerSystem(m_registry, camera);
   gameMovementSystem(m_registry, tiles, width, height, dt, m_engine->camera);
   gameAnimationSystem(m_registry, dt);
 

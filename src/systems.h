@@ -17,3 +17,4 @@ void gameMovementSystem(entt::registry &registry,
 
 void gameAnimationSystem(entt::registry &registry, float dt);
 void gameInputSystem(entt::registry &registry, const engine::Input &input);
+void gameNpcFollowPlayerSystem(entt::registry &registry, engine::Camera &camera);
