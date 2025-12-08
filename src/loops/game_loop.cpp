@@ -11,8 +11,12 @@
 #include "ecs/systems.h"
 #include "ecs/utils.h"
 #include "ecs/world_loader.h"
+#include "render/textToImage.h"
+#include "render/ui_render.h"
 #include "resources/image_manager.h"
 #include "systems.h"
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Font.hpp>
 
 GameLoop::GameLoop() {
   engine::WorldLoader::loadWorldFromJson("assets/worlds/meadow.json", width, height, tileTextures, tiles);
@@ -90,6 +94,31 @@ void GameLoop::init() {
     m_registry.emplace<engine::CastsShadow>(minotaur);
     m_registry.emplace<HP>(minotaur, HP{20, 20});
   }
+
+  // Create UI
+  static sf::Font uiFont;
+  static sf::Image uiTextImage;
+  static bool uiInitialized = false;
+
+  if (!uiFont.openFromFile("fonts/DejaVuSans.ttf")) {
+    throw std::runtime_error("Failed to load font for UI");
+  } else {
+    uiTextImage = textToImage("Hello UI", uiFont, 18, sf::Color::White);
+  }
+
+  if (uiTextImage.getSize().x == 0 || uiTextImage.getSize().y == 0) {
+    throw std::runtime_error("Failed to create UI text image");
+  }
+  auto uiEntity = m_registry.create();
+
+  m_registry.emplace<engine::Position>(uiEntity, sf::Vector2f{10.f, 10.f});
+
+  UISprite ui{};
+  ui.image = &uiTextImage;
+  ui.rect = sf::IntRect(
+      {0, 0}, {static_cast<int>(uiTextImage.getSize().x), static_cast<int>(uiTextImage.getSize().y)});
+  ui.zIndex = 0;
+  m_registry.emplace<UISprite>(uiEntity, ui);
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
@@ -111,8 +140,8 @@ void GameLoop::collectRenderData(engine::RenderFrame &frame, engine::Camera &cam
   // Collecting static map texture
   frame.tileVertices = m_staticMapPoints;
 
-  // Collecting entities
-  systems::renderSystem(m_registry, frame, camera, m_engine->imageManager);
+  systems::renderSystem(m_registry, frame, camera, m_engine->imageManager); // Entities render
+  uiRender(m_registry, frame, camera);                                      // UI render
 }
 
 bool GameLoop::isFinished() const { return m_finished; }
