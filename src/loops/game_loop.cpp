@@ -11,12 +11,19 @@
 #include "ecs/systems.h"
 #include "ecs/utils.h"
 #include "ecs/world_loader.h"
+#include "game_mechanics/npc.h"
 #include "render/textToImage.h"
 #include "render/ui_render.h"
 #include "resources/image_manager.h"
 #include "systems.h"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
+
+const unsigned int FPS_TEXT_SIZE = 30;
+const unsigned int HP_TEXT_SIZE = 30;
+const unsigned int TIMER_TEXT_SIZE = 40;
+
+const unsigned int LEVEL_TIME = 300; // seconds
 
 GameLoop::GameLoop() {
   engine::WorldLoader::loadWorldFromJson("assets/worlds/meadow.json", width, height, tileTextures, tiles);
@@ -77,7 +84,8 @@ void GameLoop::init() {
   auto main_hero = systems::createNPC(m_registry, {2.f, 2.f}, mainSize, mainHeroClips, 200.f);
   m_registry.emplace<engine::PlayerControlled>(main_hero);
   m_registry.emplace<engine::CastsShadow>(main_hero);
-  m_registry.emplace<HP>(main_hero, HP{100, 100});
+  HP hp = {100, 100};
+  m_registry.emplace<HP>(main_hero, hp);
 
   // Create minotaurs
   for (int i = 0; i < 3; ++i) {
@@ -95,33 +103,44 @@ void GameLoop::init() {
     m_registry.emplace<HP>(minotaur, HP{20, 20});
   }
 
-  // Create UI
-  static sf::Font uiFont;
-  static sf::Image uiTextImage;
-  static bool uiInitialized = false;
-
+  // Load font
   if (!uiFont.openFromFile("fonts/DejaVuSans.ttf")) {
     throw std::runtime_error("Failed to load font for UI");
-  } else {
-    uiTextImage = textToImage("Hello UI", uiFont, 18, sf::Color::White);
   }
 
-  if (uiTextImage.getSize().x == 0 || uiTextImage.getSize().y == 0) {
-    throw std::runtime_error("Failed to create UI text image");
-  }
-  auto uiEntity = m_registry.create();
+  // Create UI elements
+  uiEntities.fps = m_registry.create();
+  uiEntities.hp = m_registry.create();
+  uiEntities.timer = m_registry.create();
 
-  m_registry.emplace<engine::Position>(uiEntity, sf::Vector2f{10.f, 10.f});
+  uiAssets.fps = textToImage("FPS 0", uiFont, FPS_TEXT_SIZE, sf::Color::White);
+  std::string hpText = "HP " + std::to_string(hp.current) + "/" + std::to_string(hp.max);
+  uiAssets.hp = textToImage(hpText, uiFont, HP_TEXT_SIZE, sf::Color::Red);
+  uiAssets.timer = textToImage("5:00", uiFont, TIMER_TEXT_SIZE, sf::Color::White);
 
   UISprite ui{};
-  ui.image = &uiTextImage;
-  ui.rect = sf::IntRect(
-      {0, 0}, {static_cast<int>(uiTextImage.getSize().x), static_cast<int>(uiTextImage.getSize().y)});
-  ui.zIndex = 0;
-  m_registry.emplace<UISprite>(uiEntity, ui);
+  ui.image = &uiAssets.fps;
+  ui.pos = engine::Position{sf::Vector2f{10.f, 10.f}};
+  UISprite uiHP{};
+  uiHP.image = &uiAssets.hp;
+  uiHP.pos = engine::Position{sf::Vector2f{10.f, 40.f}};
+  UISprite uiTimer{};
+  uiTimer.image = &uiAssets.timer;
+  uiTimer.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x / 2.f - 60.f, 10.f}};
+
+  m_registry.emplace<UISprite>(uiEntities.fps, ui);
+  m_registry.emplace<UISprite>(uiEntities.hp, uiHP);
+  m_registry.emplace<UISprite>(uiEntities.timer, uiTimer);
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
+  gameLevelTimer += dt;
+  gameLogicTimer += dt;
+  uiTimer += dt;
+  const double alpha = 0.1;
+  emaDeltaTime = alpha * dt + (1.0 - alpha) * emaDeltaTime;
+  updateUI();
+
   engine::Camera &camera = m_engine->camera;
   gameInputSystem(m_registry, input);
   gameNpcFollowPlayerSystem(m_registry, camera);
@@ -145,3 +164,33 @@ void GameLoop::collectRenderData(engine::RenderFrame &frame, engine::Camera &cam
 }
 
 bool GameLoop::isFinished() const { return m_finished; }
+
+int GameLoop::getEmaFps() { return static_cast<int>(emaDeltaTime == 0.0 ? 60.0 : 1.0 / emaDeltaTime); }
+
+sf::Image GameLoop::timerImage() {
+  int timeLeft = static_cast<int>(LEVEL_TIME - gameLevelTimer);
+  if (timeLeft < 0)
+    timeLeft = 0;
+  int minutes = timeLeft / 60;
+  int seconds = timeLeft % 60;
+  char text[6];
+  std::snprintf(text, sizeof(text), "%d:%02d", minutes, seconds);
+  return textToImage(std::string(text), uiFont, TIMER_TEXT_SIZE, sf::Color::White);
+}
+
+void GameLoop::updateUI() {
+  if (uiTimer < 0.3) {
+    return;
+  }
+  uiAssets.fps = textToImage("FPS " + std::to_string(getEmaFps()), uiFont, FPS_TEXT_SIZE, sf::Color::White);
+  uiAssets.timer = timerImage();
+
+  auto playerView = m_registry.view<const engine::PlayerControlled, const HP>();
+  HP hp = playerView.get<HP>(*(playerView.begin()));
+  uiAssets.hp = textToImage("HP " + std::to_string(hp.current) + "/" + std::to_string(hp.max),
+      uiFont,
+      HP_TEXT_SIZE,
+      sf::Color::Red);
+  uiTimer = 0.0;
+  return;
+}

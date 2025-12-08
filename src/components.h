@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ecs/components.h"
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
@@ -11,7 +12,7 @@ struct HP {
 struct SideViewOnly {};
 
 struct UISprite {
-  const sf::Image *image = nullptr;
-  sf::IntRect rect;
+  sf::Image *image;
+  engine::Position pos;
   int zIndex = 0;
 };

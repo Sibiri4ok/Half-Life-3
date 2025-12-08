@@ -3,6 +3,7 @@
 #include "core/loop.h"
 #include "ecs/tile.h"
 #include "resources/serializable_world.h"
+#include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <entt/entt.hpp>
 #include <vector>
@@ -76,6 +77,23 @@ private:
    */
   entt::registry m_registry;
 
+  double gameLevelTimer = 0.0;
+  double gameLogicTimer = 0.0;
+  double uiTimer = 0.0;
+  double emaDeltaTime = 1.0 / 60.0;
+
+  sf::Font uiFont;
+  struct UiAssets {
+    sf::Image fps;
+    sf::Image hp;
+    sf::Image timer;
+  } uiAssets;
+  struct UiEntities {
+    entt::entity fps{entt::null};
+    entt::entity hp{entt::null};
+    entt::entity timer{entt::null};
+  } uiEntities;
+
   engine::Engine *m_engine = nullptr; ///< Pointer to the main engine instance
 
   int width;                                                 ///< World width in tile units
@@ -84,4 +102,8 @@ private:
   sf::VertexArray m_staticMapPoints;                         ///< Pre-computed vertex data for static
                                                              ///< ground layer rendering
   std::vector<engine::Tile> tiles; ///< Tile data representing world layout, collision, and layers
+
+  int getEmaFps();
+  sf::Image timerImage();
+  void updateUI();
 };
