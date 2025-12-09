@@ -26,7 +26,7 @@ struct Experience {
 };
 
 // Marks entity as solid for movement/collision.
-// Entities without this component (or with value == false) doens't block movement.
+// Entities without this component (or with value == false) doesn't block movement.
 struct Solid {
   bool value = true;
 };
@@ -38,6 +38,9 @@ struct UISprite {
   engine::Position pos;
   int zIndex = 0;
 };
+
+struct UIPause {};
+struct UIGameOver {};
 
 enum class WeaponKind {
   MagicStick,
@@ -75,4 +78,7 @@ struct Weapons {
   std::array<Weapon, 2> slots;
 };
 
-struct UIPause {};
+struct HpRegen {
+  float perSecond = 0.f;
+  float accumulator = 0.f;
+};

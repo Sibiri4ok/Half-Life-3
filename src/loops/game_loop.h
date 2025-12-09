@@ -14,6 +14,18 @@ struct Camera;
 struct RenderFrame;
 } // namespace engine
 
+enum class UpgradeKind {
+  MoveSpeed,
+  ExtraProjectiles,
+  Damage,
+  Radius,
+  Cooldown,
+  MaxHp,
+  Regen,
+  XpGain,
+  MobCount,
+};
+
 /**
  * @brief Main game loop implementation for gameplay scene.
  *
@@ -85,6 +97,11 @@ private:
   unsigned int kills = 0;
 
   float gameSpeed = 1.0;
+  float xpMultiplier = 1.0f;
+  float mobSpawnMultiplier = 1.0f;
+  bool upgradeMenuActive = false;
+  unsigned int pendingLevelUps = 0;
+  bool gameOverActive = false;
 
   sf::Font uiFont;
   struct UiAssets {
@@ -95,6 +112,8 @@ private:
     sf::Image fps;
     sf::Image gameSpeed;
     sf::Image pause;
+    sf::Image stats;
+    sf::Image gameOver;
   } uiAssets;
   struct UiEntities {
     entt::entity hp{entt::null};
@@ -104,6 +123,8 @@ private:
     entt::entity fps{entt::null};
     entt::entity gameSpeed{entt::null};
     entt::entity pause{entt::null};
+    entt::entity stats{entt::null};
+    entt::entity gameOver{entt::null};
   } uiEntities;
 
   engine::Engine *m_engine = nullptr; ///< Pointer to the main engine instance
@@ -115,11 +136,26 @@ private:
                                                              ///< ground layer rendering
   std::vector<engine::Tile> tiles; ///< Tile data representing world layout, collision, and layers
 
+  struct UpgradeUI {
+    sf::Image panel;
+    sf::Image options[3];
+    entt::entity panelEntity{entt::null};
+    entt::entity optionEntities[3]{entt::null, entt::null, entt::null};
+    UpgradeKind optionKinds[3]{UpgradeKind::MoveSpeed,
+        UpgradeKind::ExtraProjectiles,
+        UpgradeKind::Damage};
+  } upgradeUi;
+
   int getEmaFps();
   sf::Image timerImage();
   void updateUI();
   void updateHUD();
   void updatePauseOverlay();
+  void updateStatsPanel();
+  void updateGameOverOverlay();
+  void openUpgradeMenu();
+  void closeUpgradeMenu();
+  void applyUpgrade(UpgradeKind kind);
   void spawnMinotaurs();
   void spawnStaticObjects(unsigned int count);
 };
