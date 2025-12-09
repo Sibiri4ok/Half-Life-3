@@ -137,10 +137,7 @@ void GameLoop::init() {
   );
 
   const unsigned magicBallTexSize = 32u;
-  const float swordPixelsPerRadius = 64.f;
-  unsigned swordRingTexSize = static_cast<unsigned>(playerWeapons.slots[1].radius * swordPixelsPerRadius);
-  if (swordRingTexSize == 0u)
-    swordRingTexSize = 1u;
+  const unsigned swordRingTexSize = 64u;
   render::generateWeaponTextures(magicBallTexSize, swordRingTexSize);
 
   m_registry.emplace<Weapons>(main_hero, playerWeapons);

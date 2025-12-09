@@ -110,13 +110,15 @@ static void spawnRadialEffect(entt::registry &registry,
 
   sf::Vector2f heroScreen = camera.worldToScreen(originPos);
 
-  // Texture size in pixels is proportional to weapon.radius.
-  constexpr float pixelsPerRadius = 64.f;
-  unsigned ringSize = static_cast<unsigned>(weapon.radius * radiusFactor * pixelsPerRadius);
-  if (ringSize == 0u)
-    ringSize = 1u;
+  // Visual size scales with weapon.radius, slightly larger than actual damage radius.
+  constexpr float baseTextureSize = 64.f;  // sword_ring.png generated as 64x64
+  constexpr float visualBaseRadius = 1.5f; // visual calibration in world units
 
-  float sizePixels = static_cast<float>(ringSize);
+  float scale = (weapon.radius * radiusFactor) / visualBaseRadius;
+  if (scale < 0.5f)
+    scale = 0.5f;
+
+  float sizePixels = baseTextureSize * scale;
   sf::Vector2f anchorScreen = heroScreen + sf::Vector2f{0.f, sizePixels * 0.5f};
   sf::Vector2f ringWorld = camera.screenToWorld(anchorScreen);
 
@@ -125,7 +127,8 @@ static void spawnRadialEffect(entt::registry &registry,
 
   engine::Renderable render;
   render.textureName = std::string(render::SWORD_RING_TEXTURE);
-  render.textureRect = sf::IntRect({0, 0}, {static_cast<int>(ringSize), static_cast<int>(ringSize)});
+  render.textureRect =
+      sf::IntRect({0, 0}, {static_cast<int>(baseTextureSize), static_cast<int>(baseTextureSize)});
   render.targetSize = {sizePixels, sizePixels};
   render.color = sf::Color(255, 255, 255, 230);
   registry.emplace<engine::Renderable>(e, std::move(render));
