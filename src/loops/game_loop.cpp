@@ -14,6 +14,7 @@
 #include "ecs/world_loader.h"
 #include "game_mechanics/npc.h"
 #include "game_mechanics/weapons.h"
+#include "random/random_positions.h"
 #include "render/colorDmg.h"
 #include "render/textToImage.h"
 #include "render/ui_render.h"
@@ -71,6 +72,8 @@ void GameLoop::init() {
 
   m_engine->render.generateTileMapVertices(
       m_staticMapPoints, m_engine->camera, staticTiles, width, height, tileImages);
+
+  spawnStaticObjects(20);
 
   // Player
   sf::Vector2f mainSize{56.f, 60.f};
@@ -147,7 +150,8 @@ void GameLoop::init() {
         textToImage(std::string("Game speed ") + buf + "x", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   }
 
-  uiAssets.pause.loadFromFile("assets/ui/pause.png");
+  bool pauseLoaded = uiAssets.pause.loadFromFile("assets/ui/pause.png");
+  (void)pauseLoaded;
 
   UISprite uiHP{};
   uiHP.image = &uiAssets.hp;
@@ -325,4 +329,68 @@ void GameLoop::spawnMinotaurs() {
         height);
   }
   return;
+}
+
+void GameLoop::spawnStaticObjects(unsigned int count) {
+  struct Prefab {
+    const char *path;
+    int weight;
+  };
+
+  static const std::vector<Prefab> prefabs = {
+      // bushes – most common
+      {"assets/worlds/bush1.png", 40},
+      {"assets/worlds/bush2.png", 40},
+
+      // trees
+      {"assets/worlds/tree1.png", 5},
+      {"assets/worlds/tree2.png", 5},
+      {"assets/worlds/tree3.png", 5},
+      {"assets/worlds/tree4.png", 5},
+
+      // stumps (broken)
+      {"assets/worlds/broken1.png", 10},
+      {"assets/worlds/broken2.png", 10},
+      {"assets/worlds/broken3.png", 10},
+  };
+
+  if (prefabs.empty() || width <= 0 || height <= 0 || count == 0u)
+    return;
+
+  static std::mt19937 rng{std::random_device{}()};
+  int totalWeight = 0;
+  for (const auto &p : prefabs)
+    totalWeight += p.weight;
+  if (totalWeight <= 0)
+    return;
+
+  std::uniform_int_distribution<int> weightDist(0, totalWeight - 1);
+
+  const float margin = 1.f;
+
+  for (unsigned int i = 0; i < count; ++i) {
+    sf::Vector2f worldPos = randomPointOnMap(width, height, margin);
+
+    int w = weightDist(rng);
+    const char *texPath = nullptr;
+    for (const auto &p : prefabs) {
+      if (w < p.weight) {
+        texPath = p.path;
+        break;
+      }
+      w -= p.weight;
+    }
+    if (!texPath)
+      continue;
+
+    sf::Image &img = m_engine->imageManager.getImage(texPath);
+    sf::Vector2u texSize = img.getSize();
+    if (texSize.x == 0u || texSize.y == 0u)
+      continue;
+
+    sf::IntRect rect({0, 0}, {static_cast<int>(texSize.x), static_cast<int>(texSize.y)});
+    sf::Vector2f targetSize{static_cast<float>(texSize.x), static_cast<float>(texSize.y)};
+
+    auto e = systems::createStaticObject(m_registry, worldPos, targetSize, texPath, rect);
+  }
 }

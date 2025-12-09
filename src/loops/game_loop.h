@@ -121,4 +121,5 @@ private:
   void updateHUD();
   void updatePauseOverlay();
   void spawnMinotaurs();
+  void spawnStaticObjects(unsigned int count);
 };
