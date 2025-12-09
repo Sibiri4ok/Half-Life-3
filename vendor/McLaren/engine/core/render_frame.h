@@ -36,8 +36,8 @@ struct RenderFrame {
 		sf::VertexArray shadowVertices;		  ///< Vertex data for shadow rendering
 	};
 
-	std::vector<SpriteData> sprites; ///< Collection of sprites to render this frame
-	sf::VertexArray tileVertices;	 ///< Vertex data for tile-based rendering
+	std::vector<SpriteData> sprites;				   ///< Collection of sprites to render this frame
+	std::vector<const sf::VertexArray *> tileBatches; ///< Pointers to cached tile meshes to draw
 };
 
 } // namespace engine

@@ -92,8 +92,6 @@ private:
   double globalTimer = 0.0;
   double spawnTimer = 0.0;
   double uiTimer = 0.0;
-
-  double emaDeltaTime = 1.0 / 60.0;
   unsigned int kills = 0;
 
   float gameSpeed = 1.0;
@@ -109,7 +107,6 @@ private:
     sf::Image exp;
     sf::Image kills;
     sf::Image timer;
-    sf::Image fps;
     sf::Image gameSpeed;
     sf::Image pause;
     sf::Image stats;
@@ -120,7 +117,6 @@ private:
     entt::entity exp{entt::null};
     entt::entity kills{entt::null};
     entt::entity timer{entt::null};
-    entt::entity fps{entt::null};
     entt::entity gameSpeed{entt::null};
     entt::entity pause{entt::null};
     entt::entity stats{entt::null};
@@ -132,8 +128,7 @@ private:
   int width;                                                 ///< World width in tile units
   int height;                                                ///< World height in tile units
   std::unordered_map<int, engine::TileTexture> tileTextures; ///< Tile ID to texture data mapping
-  sf::VertexArray m_staticMapPoints;                         ///< Pre-computed vertex data for static
-                                                             ///< ground layer rendering
+  std::vector<sf::VertexArray> m_tileMeshes;                 ///< Cached meshes for tilemap layers
   std::vector<engine::Tile> tiles; ///< Tile data representing world layout, collision, and layers
 
   struct UpgradeUI {

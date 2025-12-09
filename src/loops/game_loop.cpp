@@ -93,7 +93,7 @@ void GameLoop::init() {
   }
 
   m_engine->render.generateTileMapVertices(
-      m_staticMapPoints, m_engine->camera, staticTiles, width, height, tileImages);
+      m_tileMeshes, m_engine->camera, staticTiles, width, height, tileImages);
 
   spawnStaticObjects(20);
 
@@ -106,7 +106,7 @@ void GameLoop::init() {
       {1, {"assets/npc/main_walk.png", 6, 0.08f, mainRect}},
   };
 
-  sf::Vector2f playerStartPos{2.f, 2.f};
+  sf::Vector2f playerStartPos{width / 2.f, height / 2.f};
   auto main_hero = systems::createNPC(m_registry, playerStartPos, mainSize, mainHeroClips, 200.f);
   m_registry.emplace<engine::PlayerControlled>(main_hero);
   m_registry.emplace<engine::CastsShadow>(main_hero);
@@ -154,7 +154,6 @@ void GameLoop::init() {
   uiEntities.exp = m_registry.create();
   uiEntities.kills = m_registry.create();
   uiEntities.timer = m_registry.create();
-  uiEntities.fps = m_registry.create();
   uiEntities.gameSpeed = m_registry.create();
   uiEntities.pause = entt::null;
 
@@ -165,7 +164,6 @@ void GameLoop::init() {
   uiAssets.exp = textToImage(expText, uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::Cyan);
   uiAssets.kills = textToImage("Kills 0", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   uiAssets.timer = textToImage("00:00", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
-  uiAssets.fps = textToImage("FPS 0", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   {
     char buf[16];
     std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gameSpeed));
@@ -194,25 +192,18 @@ void GameLoop::init() {
   UISprite uiTimer{};
   uiTimer.image = &uiAssets.timer;
   uiTimer.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x / 2.f - 60.f, 10.f}};
-  UISprite uiFps{};
-  uiFps.image = &uiAssets.fps;
-  uiFps.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x - 130.f, 10.f}};
   UISprite uiGameSpeed{};
   uiGameSpeed.image = &uiAssets.gameSpeed;
-  uiGameSpeed.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x - 280.f, 40.f}};
+  uiGameSpeed.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x - 280.f, 10.f}};
 
   m_registry.emplace<UISprite>(uiEntities.hp, uiHP);
   m_registry.emplace<UISprite>(uiEntities.exp, uiExp);
   m_registry.emplace<UISprite>(uiEntities.kills, uiKills);
   m_registry.emplace<UISprite>(uiEntities.timer, uiTimer);
-  m_registry.emplace<UISprite>(uiEntities.fps, uiFps);
   m_registry.emplace<UISprite>(uiEntities.gameSpeed, uiGameSpeed);
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
-  const double alpha = 0.1;
-  emaDeltaTime = alpha * dt + (1.0 - alpha) * emaDeltaTime;
-
   dt *= gameSpeed;
 
   globalTimer += dt;
@@ -306,14 +297,12 @@ void GameLoop::update(engine::Input &input, float dt) {
 }
 
 void GameLoop::collectRenderData(engine::RenderFrame &frame, engine::Camera &camera) {
-  frame.tileVertices = m_staticMapPoints;
+  m_engine->render.renderMap(m_tileMeshes, camera, sf::Vector2i({width, height}), frame.tileBatches);
   systems::renderSystem(m_registry, frame, camera, m_engine->imageManager);
   uiRender(m_registry, frame, camera);
 }
 
 bool GameLoop::isFinished() const { return m_finished; }
-
-int GameLoop::getEmaFps() { return static_cast<int>(emaDeltaTime == 0.0 ? 60.0 : 1.0 / emaDeltaTime); }
 
 sf::Image GameLoop::timerImage() {
   int time = static_cast<int>(globalTimer);
@@ -369,8 +358,6 @@ void GameLoop::updateHUD() {
   uiAssets.kills =
       textToImage("Kills " + std::to_string(kills), uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   uiAssets.timer = timerImage();
-  uiAssets.fps =
-      textToImage("FPS " + std::to_string(getEmaFps()), uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   {
     char buf[16];
     std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gameSpeed));
@@ -588,7 +575,8 @@ void GameLoop::spawnStaticObjects(unsigned int count) {
     sf::IntRect rect({0, 0}, {static_cast<int>(texSize.x), static_cast<int>(texSize.y)});
     sf::Vector2f targetSize{static_cast<float>(texSize.x), static_cast<float>(texSize.y)};
 
-    systems::createStaticObject(m_registry, worldPos, targetSize, texPath, rect);
+    auto e = systems::createStaticObject(m_registry, worldPos, targetSize, texPath, rect);
+    m_registry.emplace<engine::CastsShadow>(e);
   }
 }
 

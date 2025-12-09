@@ -110,7 +110,6 @@ void animationSystem(entt::registry &registry, float dt) {
 void renderSystem(entt::registry &registry, RenderFrame &frame, const Camera &camera,
 				  ImageManager &imageManager) {
 	sf::FloatRect boundsCamera = camera.getBounds();
-
 	registry.sort<Position>([](const auto &lhs, const auto &rhs) {
 		if (lhs.value.y != rhs.value.y) {
 			return lhs.value.y < rhs.value.y;
@@ -132,8 +131,16 @@ void renderSystem(entt::registry &registry, RenderFrame &frame, const Camera &ca
 		const auto &pos = view.get<const Position>(entity);
 		auto &render = view.get<Renderable>(entity);
 
-		sf::FloatRect boundsEntity(camera.worldToScreen(pos.value),
-								   {render.targetSize.x, render.targetSize.y});
+		const sf::Vector2f anchor = camera.worldToScreen(pos.value);
+
+		// Approximate bounds of sprite plus its shadow.
+		// Shadow is cast along +X and can extend roughly up to sprite height.
+		const float w = render.targetSize.x;
+		const float h = render.targetSize.y;
+		const float margin = 32.f;
+		sf::FloatRect boundsEntity(
+			{anchor.x - w * 0.5f - margin, anchor.y - h - margin},
+			{w + h + margin * 2.f, h + margin * 2.f});
 		if (!boundsEntity.findIntersection(boundsCamera).has_value()) {
 			continue;
 		}
@@ -174,8 +181,6 @@ void renderSystem(entt::registry &registry, RenderFrame &frame, const Camera &ca
 
 		// float scaledFrameWidth = frameWidth * uniformScale;
 		// float scaledFrameHeight = frameHeight * uniformScale;
-
-		const sf::Vector2f anchor = camera.worldToScreen(pos.value);
 		const float angle = (rot ? rot->angle * (3.14159f / 180.f) : 0.f);
 		const float cosA = std::cos(angle);
 		const float sinA = std::sin(angle);
