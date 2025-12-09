@@ -19,3 +19,12 @@ entt::entity gameCreateNPC(entt::registry &registry,
 
 void gameNpcFollowPlayerSystem(entt::registry &registry, engine::Camera &camera);
 unsigned int clearDeadNpc(entt::registry &registry);
+
+entt::entity spawnMinotaurInRing(entt::registry &registry,
+    unsigned int maxHp,
+    unsigned int collisionDamage,
+    const sf::Vector2f &playerPos,
+    float innerRadius,
+    float outerRadius,
+    int worldWidth,
+    int worldHeight);

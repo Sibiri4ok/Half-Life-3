@@ -16,7 +16,7 @@ struct NpcCollisionDamage {
 
 struct LastDamageTime {
   double lastDamageTime = 0.0;
-  double damageCooldown = 0.2; // in seconds
+  double damageCooldown = 0.3; // in seconds
 };
 
 // Marks entity as solid for movement/collision.

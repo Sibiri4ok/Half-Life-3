@@ -78,7 +78,7 @@ private:
   entt::registry m_registry;
 
   double globalTimer = 0.0;
-  double logicTimer = 0.0;
+  double spawnTimer = 0.0;
   double uiTimer = 0.0;
 
   double emaDeltaTime = 1.0 / 60.0;
@@ -110,4 +110,5 @@ private:
   int getEmaFps();
   sf::Image timerImage();
   void updateUI();
+  void spawnMinotaurs();
 };

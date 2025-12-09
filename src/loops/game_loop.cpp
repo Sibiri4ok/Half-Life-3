@@ -2,6 +2,7 @@
 
 #include <random>
 
+#include "cmath"
 #include "components.h"
 #include "core/camera.h"
 #include "core/engine.h"
@@ -72,6 +73,7 @@ void GameLoop::init() {
   m_engine->render.generateTileMapVertices(
       m_staticMapPoints, m_engine->camera, staticTiles, width, height, tileImages);
 
+  // Player
   sf::Vector2f mainSize{56.f, 60.f};
   sf::IntRect mainRect({0, 0}, {56, 60});
 
@@ -80,19 +82,33 @@ void GameLoop::init() {
       {1, {"assets/npc/main_walk.png", 6, 0.08f, mainRect}},
   };
 
-  auto main_hero = systems::createNPC(m_registry, {2.f, 2.f}, mainSize, mainHeroClips, 200.f);
+  sf::Vector2f playerStartPos{2.f, 2.f};
+  auto main_hero = systems::createNPC(m_registry, playerStartPos, mainSize, mainHeroClips, 200.f);
   m_registry.emplace<engine::PlayerControlled>(main_hero);
   m_registry.emplace<engine::CastsShadow>(main_hero);
   HP hp = {100, 100};
   m_registry.emplace<HP>(main_hero, hp);
   m_registry.emplace<Solid>(main_hero, Solid{true});
-  m_registry.emplace<LastDamageTime>(main_hero, LastDamageTime{0.0});
+  m_registry.emplace<LastDamageTime>(main_hero, LastDamageTime{-1.0});
 
+  // Weapons
   Weapons playerWeapons{};
-  playerWeapons.slots[0] = makeLinearWeapon(WeaponKind::MagicStick, 7.f, 2.0f, 1, 0.1f, 8, 400.f);
-  playerWeapons.slots[1] = makeRadialWeapon(WeaponKind::Sword, 3.f, 1.5f, 2, 0.1f, 5);
+  playerWeapons.slots[0] = makeLinearWeapon(WeaponKind::MagicStick,
+      7.f,  // attack radius
+      2.0f, // cooldown
+      1,    // shots per attack
+      0.1f, // shot interval
+      8,    // dmg
+      400.f // projectile speed
+  );
+  playerWeapons.slots[1] = makeRadialWeapon(WeaponKind::Sword,
+      3.f,  // attack radius
+      1.5f, // cooldown
+      2,    // shots per attack
+      0.1f, // shot interval
+      5     // dmg
+  );
 
-  // Procedural weapon textures; ring size follows sword radius.
   const unsigned magicBallTexSize = 32u;
   const float swordPixelsPerRadius = 64.f;
   unsigned swordRingTexSize = static_cast<unsigned>(playerWeapons.slots[1].radius * swordPixelsPerRadius);
@@ -102,23 +118,7 @@ void GameLoop::init() {
 
   m_registry.emplace<Weapons>(main_hero, playerWeapons);
 
-  for (int i = 0; i < 3; ++i) {
-    sf::Vector2f minoSize{60.f, 60.f};
-    sf::IntRect minoRect({0, 0}, {60, 60});
-
-    std::unordered_map<int, engine::AnimationClip> npcClips = {
-        {0, {"assets/npc/minotaur_idle.png", 12, 0.08f, minoRect}},
-        {1, {"assets/npc/minotaur_walk.png", 18, 0.08f, minoRect}}};
-    auto minotaur =
-        systems::createNPC(m_registry, {float(i * 2 + 1), float(i * 2 + 1)}, minoSize, npcClips, 60.f);
-    m_registry.emplace<SideViewOnly>(minotaur);
-    m_registry.emplace<engine::ChasingPlayer>(minotaur);
-    m_registry.emplace<engine::CastsShadow>(minotaur);
-    m_registry.emplace<HP>(minotaur, HP{20, 20});
-    m_registry.emplace<NpcCollisionDamage>(minotaur, NpcCollisionDamage{10});
-    m_registry.emplace<Solid>(minotaur, Solid{true});
-  }
-
+  // UI
   if (!uiFont.openFromFile("fonts/DejaVuSans.ttf")) {
     throw std::runtime_error("Failed to load font for UI");
   }
@@ -155,20 +155,21 @@ void GameLoop::init() {
 
 void GameLoop::update(engine::Input &input, float dt) {
   globalTimer += dt;
-  logicTimer += dt;
+  spawnTimer += dt;
   uiTimer += dt;
   const double alpha = 0.1;
   emaDeltaTime = alpha * dt + (1.0 - alpha) * emaDeltaTime;
   updateUI();
 
   engine::Camera &camera = m_engine->camera;
+  spawnMinotaurs();
   gameInputSystem(m_registry, input);
   gameNpcFollowPlayerSystem(m_registry, camera);
   gameWeaponSystem(m_registry, dt, m_engine->camera);
   gameMovementSystem(m_registry, tiles, width, height, dt, globalTimer, m_engine->camera);
   gameProjectileDamageSystem(m_registry, dt, m_engine->camera);
   gameAnimationSystem(m_registry, dt);
-  updatePlayerDamageColor(m_registry, logicTimer);
+  updatePlayerDamageColor(m_registry, globalTimer);
   kills += clearDeadNpc(m_registry);
 
   auto playerView = m_registry.view<const engine::Position, const engine::PlayerControlled>();
@@ -213,5 +214,34 @@ void GameLoop::updateUI() {
   uiAssets.fps = textToImage("FPS " + std::to_string(getEmaFps()), uiFont, FPS_TEXT_SIZE, sf::Color::White);
 
   uiTimer = 0.0;
+  return;
+}
+
+void GameLoop::spawnMinotaurs() {
+  auto playerView = m_registry.view<const engine::Position, const engine::PlayerControlled>();
+  sf::Vector2f playerPos = playerView.get<const engine::Position>(*(playerView.begin())).value;
+
+  int multiplier = globalTimer < 20.0 ? 1 : globalTimer / 20.0;
+  int count = multiplier / 1.5;
+  if (spawnTimer < 2.0) {
+    return;
+  }
+  double usedTime = std::floor(spawnTimer);
+  count *= usedTime / 2.0;
+  count = std::max(1, count);
+  spawnTimer -= usedTime;
+
+  const unsigned int hp = 20 + (multiplier * 2);
+  const unsigned int dmg = 10 + (multiplier * 2);
+  for (int i = 0; i < count; ++i) {
+    spawnMinotaurInRing(m_registry,
+        hp,
+        dmg,
+        playerPos,
+        4.f,  // inner spawn radius
+        12.f, // outer spawn radius
+        width,
+        height);
+  }
   return;
 }

@@ -3,6 +3,8 @@
 #include "components.h"
 #include "core/camera.h"
 #include "ecs/components.h"
+#include "ecs/systems.h"
+#include "random/random_positions.h"
 
 #include <SFML/System/Vector2.hpp>
 #include <cassert>
@@ -34,6 +36,53 @@ entt::entity gameCreateNPC(entt::registry &registry,
   anim.state = clips.begin()->first;
   registry.emplace<engine::Animation>(e, std::move(anim));
   return e;
+}
+
+entt::entity spawnMinotaurInRing(entt::registry &registry,
+    unsigned int maxHp,
+    unsigned int collisionDamage,
+    const sf::Vector2f &playerPos,
+    float innerRadius,
+    float outerRadius,
+    int worldWidth,
+    int worldHeight) {
+  sf::Vector2f spawnPos;
+  float innerSq = innerRadius * innerRadius;
+  float outerSq = outerRadius * outerRadius;
+
+  const int maxTries = 1024;
+  int tries = 0;
+
+  while (true) {
+    const float margin = 1.f;
+    spawnPos = randomPointOnMap(worldWidth, worldHeight, margin);
+    sf::Vector2f diff = spawnPos - playerPos;
+    float d2 = diff.x * diff.x + diff.y * diff.y;
+    if (d2 >= innerSq && d2 <= outerSq)
+      break;
+
+    if (++tries >= maxTries) {
+      spawnPos = playerPos + sf::Vector2f{outerRadius, 0.f};
+      break;
+    }
+  }
+
+  sf::Vector2f minoSize{60.f, 60.f};
+  sf::IntRect minoRect({0, 0}, {60, 60});
+
+  std::unordered_map<int, engine::AnimationClip> npcClips = {
+      {0, {"assets/npc/minotaur_idle.png", 12, 0.08f, minoRect}},
+      {1, {"assets/npc/minotaur_walk.png", 18, 0.08f, minoRect}}};
+
+  auto minotaur = systems::createNPC(registry, spawnPos, minoSize, npcClips, 60.f);
+  registry.emplace<SideViewOnly>(minotaur);
+  registry.emplace<engine::ChasingPlayer>(minotaur);
+  registry.emplace<engine::CastsShadow>(minotaur);
+  registry.emplace<HP>(minotaur, HP{maxHp, maxHp});
+  registry.emplace<NpcCollisionDamage>(minotaur, NpcCollisionDamage{collisionDamage});
+  registry.emplace<Solid>(minotaur, Solid{true});
+
+  return minotaur;
 }
 
 void gameNpcFollowPlayerSystem(entt::registry &registry, engine::Camera &camera) {
