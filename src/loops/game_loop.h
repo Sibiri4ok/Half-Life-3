@@ -136,9 +136,7 @@ private:
     sf::Image options[3];
     entt::entity panelEntity{entt::null};
     entt::entity optionEntities[3]{entt::null, entt::null, entt::null};
-    UpgradeKind optionKinds[3]{UpgradeKind::MoveSpeed,
-        UpgradeKind::ExtraProjectiles,
-        UpgradeKind::Damage};
+    UpgradeKind optionKinds[3]{UpgradeKind::MoveSpeed, UpgradeKind::ExtraProjectiles, UpgradeKind::Damage};
   } upgradeUi;
 
   int getEmaFps();

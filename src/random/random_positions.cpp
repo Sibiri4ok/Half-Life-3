@@ -18,4 +18,3 @@ sf::Vector2f randomPointOnMap(int width, int height, float margin) {
 
   return {distX(rng), distY(rng)};
 }
-

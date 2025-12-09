@@ -112,8 +112,7 @@ static void spawnRadialEffect(entt::registry &registry,
 
   // Texture size in pixels is proportional to weapon.radius.
   constexpr float pixelsPerRadius = 64.f;
-  unsigned ringSize =
-      static_cast<unsigned>(weapon.radius * radiusFactor * pixelsPerRadius);
+  unsigned ringSize = static_cast<unsigned>(weapon.radius * radiusFactor * pixelsPerRadius);
   if (ringSize == 0u)
     ringSize = 1u;
 
@@ -126,8 +125,7 @@ static void spawnRadialEffect(entt::registry &registry,
 
   engine::Renderable render;
   render.textureName = std::string(render::SWORD_RING_TEXTURE);
-  render.textureRect =
-      sf::IntRect({0, 0}, {static_cast<int>(ringSize), static_cast<int>(ringSize)});
+  render.textureRect = sf::IntRect({0, 0}, {static_cast<int>(ringSize), static_cast<int>(ringSize)});
   render.targetSize = {sizePixels, sizePixels};
   render.color = sf::Color(255, 255, 255, 230);
   registry.emplace<engine::Renderable>(e, std::move(render));
@@ -447,8 +445,8 @@ void gameInputSystem(entt::registry &registry, const engine::Input &input, float
   static bool minusPrev = false;
   static bool escPrev = false;
 
-  bool plusNow = input.isKeyDown(sf::Keyboard::Key::Equal);  // '=' / '+'
-  bool minusNow = input.isKeyDown(sf::Keyboard::Key::Hyphen);  // '-' / '_'
+  bool plusNow = input.isKeyDown(sf::Keyboard::Key::Equal);   // '=' / '+'
+  bool minusNow = input.isKeyDown(sf::Keyboard::Key::Hyphen); // '-' / '_'
   bool escNow = input.isKeyDown(sf::Keyboard::Key::Escape);
 
   if (plusNow && !plusPrev) {

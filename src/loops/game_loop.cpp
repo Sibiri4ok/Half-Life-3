@@ -95,7 +95,7 @@ void GameLoop::init() {
   m_engine->render.generateTileMapVertices(
       m_tileMeshes, m_engine->camera, staticTiles, width, height, tileImages);
 
-  spawnStaticObjects(20);
+  spawnStaticObjects(200);
 
   // Player
   sf::Vector2f mainSize{56.f, 60.f};
@@ -523,19 +523,19 @@ void GameLoop::spawnStaticObjects(unsigned int count) {
 
   static const std::vector<Prefab> prefabs = {
       // bushes – most common
-      {"assets/worlds/bush1.png", 40},
-      {"assets/worlds/bush2.png", 40},
+      {"assets/worlds/bush1.png", 20},
+      {"assets/worlds/bush2.png", 20},
 
       // trees
-      {"assets/worlds/tree1.png", 5},
-      {"assets/worlds/tree2.png", 5},
-      {"assets/worlds/tree3.png", 5},
-      {"assets/worlds/tree4.png", 5},
+      {"assets/worlds/tree1.png", 10},
+      {"assets/worlds/tree2.png", 10},
+      {"assets/worlds/tree3.png", 2},
+      {"assets/worlds/tree4.png", 2},
 
       // stumps (broken)
-      {"assets/worlds/broken1.png", 10},
-      {"assets/worlds/broken2.png", 10},
-      {"assets/worlds/broken3.png", 10},
+      {"assets/worlds/broken1.png", 1},
+      {"assets/worlds/broken2.png", 1},
+      {"assets/worlds/broken3.png", 2},
   };
 
   if (prefabs.empty() || width <= 0 || height <= 0 || count == 0u)

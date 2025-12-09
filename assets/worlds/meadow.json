@@ -1,8 +1,8 @@
 {
     "world": {
         "cereal_class_version": 0,
-        "world_height": 13,
-        "world_width": 13,
+        "world_height": 50,
+        "world_width": 50,
         "textures": [
             {
                 "key": 0,
@@ -11,22 +11,14 @@
                     "height": 0,
                     "is_ground": true
                 }
-            },
-            {
-                "key": 1,
-                "value": {
-                    "texture_src": "assets/tileset/tile_104.png",
-                    "height": -2,
-                    "is_ground": true
-                }
             }
         ],
         "areas": [
             {
-                "posX": -6,
-                "posY": -6,
-                "sizeX": 13,
-                "sizeY": 13,
+                "posX": -25,
+                "posY": -25,
+                "sizeX": 50,
+                "sizeY": 50,
                 "tile": {
                     "textures_keys": [
                         0
