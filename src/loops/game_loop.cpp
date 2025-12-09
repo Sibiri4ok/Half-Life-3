@@ -12,6 +12,7 @@
 #include "ecs/utils.h"
 #include "ecs/world_loader.h"
 #include "game_mechanics/npc.h"
+#include "render/colorDmg.h"
 #include "render/textToImage.h"
 #include "render/ui_render.h"
 #include "resources/image_manager.h"
@@ -86,6 +87,7 @@ void GameLoop::init() {
   m_registry.emplace<engine::CastsShadow>(main_hero);
   HP hp = {100, 100};
   m_registry.emplace<HP>(main_hero, hp);
+  m_registry.emplace<LastDamageTime>(main_hero, LastDamageTime{0.0});
 
   // Create minotaurs
   for (int i = 0; i < 3; ++i) {
@@ -101,6 +103,7 @@ void GameLoop::init() {
     m_registry.emplace<engine::ChasingPlayer>(minotaur);
     m_registry.emplace<engine::CastsShadow>(minotaur);
     m_registry.emplace<HP>(minotaur, HP{20, 20});
+    m_registry.emplace<NpcCollisionDamage>(minotaur, NpcCollisionDamage{10});
   }
 
   // Load font
@@ -134,8 +137,8 @@ void GameLoop::init() {
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
-  gameLevelTimer += dt;
-  gameLogicTimer += dt;
+  levelTimer += dt;
+  logicTimer += dt;
   uiTimer += dt;
   const double alpha = 0.1;
   emaDeltaTime = alpha * dt + (1.0 - alpha) * emaDeltaTime;
@@ -144,8 +147,9 @@ void GameLoop::update(engine::Input &input, float dt) {
   engine::Camera &camera = m_engine->camera;
   gameInputSystem(m_registry, input);
   gameNpcFollowPlayerSystem(m_registry, camera);
-  gameMovementSystem(m_registry, tiles, width, height, dt, m_engine->camera);
+  gameMovementSystem(m_registry, tiles, width, height, dt, levelTimer, m_engine->camera);
   gameAnimationSystem(m_registry, dt);
+  updatePlayerDamageColor(m_registry, logicTimer);
 
   // camera follow
   auto playerView = m_registry.view<const engine::Position, const engine::PlayerControlled>();
@@ -168,7 +172,7 @@ bool GameLoop::isFinished() const { return m_finished; }
 int GameLoop::getEmaFps() { return static_cast<int>(emaDeltaTime == 0.0 ? 60.0 : 1.0 / emaDeltaTime); }
 
 sf::Image GameLoop::timerImage() {
-  int timeLeft = static_cast<int>(LEVEL_TIME - gameLevelTimer);
+  int timeLeft = static_cast<int>(LEVEL_TIME - levelTimer);
   if (timeLeft < 0)
     timeLeft = 0;
   int minutes = timeLeft / 60;

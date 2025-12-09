@@ -9,6 +9,15 @@ struct HP {
   unsigned int max;
 };
 
+struct NpcCollisionDamage {
+  unsigned int damage;
+};
+
+struct LastDamageTime {
+  double lastDamageTime = 0.0;
+  double damageCooldown = 0.2; // in seconds
+};
+
 struct SideViewOnly {};
 
 struct UISprite {

@@ -13,6 +13,7 @@ void gameMovementSystem(entt::registry &registry,
     int worldWidth,
     int worldHeight,
     float dt,
+    double levelTime,
     engine::Camera &camera);
 
 void gameAnimationSystem(entt::registry &registry, float dt);

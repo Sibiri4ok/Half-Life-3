@@ -23,11 +23,30 @@ bool isEntitiesIntersecting(const sf::Vector2f &posA,
   return rectA.findIntersection(rectB).has_value();
 }
 
+static void applyNpcCollisionDamage(
+    entt::registry &registry, entt::entity npc, entt::entity player, double currentTime) {
+  if (!registry.all_of<engine::ChasingPlayer, NpcCollisionDamage>(npc))
+    return;
+  if (!registry.all_of<engine::PlayerControlled, HP, LastDamageTime>(player))
+    return;
+
+  auto &dmgTime = registry.get<LastDamageTime>(player);
+  if (currentTime - dmgTime.lastDamageTime < dmgTime.damageCooldown)
+    return;
+
+  auto &damage = registry.get<NpcCollisionDamage>(npc);
+  auto &hp = registry.get<HP>(player);
+
+  hp.current = hp.current > damage.damage ? hp.current - damage.damage : 0;
+  dmgTime.lastDamageTime = currentTime;
+}
+
 void gameMovementSystem(entt::registry &registry,
     std::vector<engine::Tile> &tiles,
     int worldWidth,
     int worldHeight,
     float dt,
+    double levelTime,
     engine::Camera &camera) {
   auto view = registry.view<engine::Position, const engine::Velocity, const engine::Renderable>();
   auto getIndex = [&](int x, int y) { return y * worldWidth + x; };
@@ -52,7 +71,7 @@ void gameMovementSystem(entt::registry &registry,
       return !tiles[getIndex(tileX, tileY)].solid;
     };
 
-    // Check collision with other entities, gets screen position
+    // Check collision with other entities, gets screen position. If player collides with enemy, apply damage
     auto blockedByAnother = [&](const sf::Vector2f &posScreen, const sf::Vector2f &newPosScreen) {
       sf::Vector2f move = newPosScreen - posScreen;
 
@@ -68,8 +87,11 @@ void gameMovementSystem(entt::registry &registry,
         if (move.x * toOther.x + move.y * toOther.y <= 0.f)
           continue;
 
-        if (isEntitiesIntersecting(newPosScreen, render, otherScreen, otherRender, camera))
+        if (isEntitiesIntersecting(newPosScreen, render, otherScreen, otherRender, camera)) {
+          applyNpcCollisionDamage(registry, entity, otherEntity, levelTime);
+          applyNpcCollisionDamage(registry, otherEntity, entity, levelTime);
           return true;
+        }
       }
       return false;
     };

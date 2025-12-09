@@ -77,8 +77,8 @@ private:
    */
   entt::registry m_registry;
 
-  double gameLevelTimer = 0.0;
-  double gameLogicTimer = 0.0;
+  double levelTimer = 0.0;
+  double logicTimer = 0.0;
   double uiTimer = 0.0;
   double emaDeltaTime = 1.0 / 60.0;
 
