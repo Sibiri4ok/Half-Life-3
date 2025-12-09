@@ -77,21 +77,25 @@ private:
    */
   entt::registry m_registry;
 
-  double levelTimer = 0.0;
+  double globalTimer = 0.0;
   double logicTimer = 0.0;
   double uiTimer = 0.0;
+
   double emaDeltaTime = 1.0 / 60.0;
+  unsigned int kills = 0;
 
   sf::Font uiFont;
   struct UiAssets {
-    sf::Image fps;
     sf::Image hp;
+    sf::Image kills;
     sf::Image timer;
+    sf::Image fps;
   } uiAssets;
   struct UiEntities {
-    entt::entity fps{entt::null};
     entt::entity hp{entt::null};
+    entt::entity kills{entt::null};
     entt::entity timer{entt::null};
+    entt::entity fps{entt::null};
   } uiEntities;
 
   engine::Engine *m_engine = nullptr; ///< Pointer to the main engine instance
