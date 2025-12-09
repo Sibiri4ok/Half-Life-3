@@ -18,3 +18,4 @@ entt::entity gameCreateNPC(entt::registry &registry,
     const std::unordered_map<int, engine::AnimationClip> &clips);
 
 void gameNpcFollowPlayerSystem(entt::registry &registry, engine::Camera &camera);
+void clearDeadNpc(entt::registry &registry);

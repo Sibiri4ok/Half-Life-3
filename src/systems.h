@@ -18,3 +18,9 @@ void gameMovementSystem(entt::registry &registry,
 
 void gameAnimationSystem(entt::registry &registry, float dt);
 void gameInputSystem(entt::registry &registry, const engine::Input &input);
+
+// Handles all player weapons (projectile + radial) in a single system.
+void gameWeaponSystem(entt::registry &registry, float dt, engine::Camera &camera);
+
+// Updates projectiles (lifetime) and applies their damage to NPCs.
+void gameProjectileDamageSystem(entt::registry &registry, float dt, engine::Camera &camera);

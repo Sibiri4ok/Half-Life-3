@@ -12,9 +12,11 @@
 #include "ecs/utils.h"
 #include "ecs/world_loader.h"
 #include "game_mechanics/npc.h"
+#include "game_mechanics/weapons.h"
 #include "render/colorDmg.h"
 #include "render/textToImage.h"
 #include "render/ui_render.h"
+#include "render/weapon_textures.h"
 #include "resources/image_manager.h"
 #include "systems.h"
 #include <SFML/Graphics/Color.hpp>
@@ -38,8 +40,6 @@ void GameLoop::init() {
   sf::Vector2f worldCenter = {width / 2.0f, height / 2.0f};
   sf::Vector2f screenCenter = m_engine->camera.worldToScreen(worldCenter);
   m_engine->camera.position = screenCenter;
-
-  // Create and generate world tiles once
 
   const int tileWidth = 64.f;
   const int tileHeight = 32.f;
@@ -73,7 +73,6 @@ void GameLoop::init() {
   m_engine->render.generateTileMapVertices(
       m_staticMapPoints, m_engine->camera, staticTiles, width, height, tileImages);
 
-  // Create player
   sf::Vector2f mainSize{56.f, 60.f};
   sf::IntRect mainRect({0, 0}, {56, 60});
 
@@ -87,9 +86,23 @@ void GameLoop::init() {
   m_registry.emplace<engine::CastsShadow>(main_hero);
   HP hp = {100, 100};
   m_registry.emplace<HP>(main_hero, hp);
+  m_registry.emplace<Solid>(main_hero, Solid{true});
   m_registry.emplace<LastDamageTime>(main_hero, LastDamageTime{0.0});
 
-  // Create minotaurs
+  Weapons playerWeapons{};
+  playerWeapons.slots[0] = makeLinearWeapon(WeaponKind::MagicStick, 7.f, 2.0f, 1, 0.1f, 8, 400.f);
+  playerWeapons.slots[1] = makeRadialWeapon(WeaponKind::Sword, 3.f, 1.5f, 2, 0.1f, 5);
+
+  // Procedural weapon textures; ring size follows sword radius.
+  const unsigned magicBallTexSize = 32u;
+  const float swordPixelsPerRadius = 64.f;
+  unsigned swordRingTexSize = static_cast<unsigned>(playerWeapons.slots[1].radius * swordPixelsPerRadius);
+  if (swordRingTexSize == 0u)
+    swordRingTexSize = 1u;
+  render::generateWeaponTextures(magicBallTexSize, swordRingTexSize);
+
+  m_registry.emplace<Weapons>(main_hero, playerWeapons);
+
   for (int i = 0; i < 3; ++i) {
     sf::Vector2f minoSize{60.f, 60.f};
     sf::IntRect minoRect({0, 0}, {60, 60});
@@ -104,14 +117,13 @@ void GameLoop::init() {
     m_registry.emplace<engine::CastsShadow>(minotaur);
     m_registry.emplace<HP>(minotaur, HP{20, 20});
     m_registry.emplace<NpcCollisionDamage>(minotaur, NpcCollisionDamage{10});
+    m_registry.emplace<Solid>(minotaur, Solid{true});
   }
 
-  // Load font
   if (!uiFont.openFromFile("fonts/DejaVuSans.ttf")) {
     throw std::runtime_error("Failed to load font for UI");
   }
 
-  // Create UI elements
   uiEntities.fps = m_registry.create();
   uiEntities.hp = m_registry.create();
   uiEntities.timer = m_registry.create();
@@ -147,11 +159,13 @@ void GameLoop::update(engine::Input &input, float dt) {
   engine::Camera &camera = m_engine->camera;
   gameInputSystem(m_registry, input);
   gameNpcFollowPlayerSystem(m_registry, camera);
+  gameWeaponSystem(m_registry, dt, m_engine->camera);
   gameMovementSystem(m_registry, tiles, width, height, dt, levelTimer, m_engine->camera);
+  gameProjectileDamageSystem(m_registry, dt, m_engine->camera);
   gameAnimationSystem(m_registry, dt);
   updatePlayerDamageColor(m_registry, logicTimer);
+  clearDeadNpc(m_registry);
 
-  // camera follow
   auto playerView = m_registry.view<const engine::Position, const engine::PlayerControlled>();
   for (auto entity : playerView) {
     const auto &pos = playerView.get<const engine::Position>(entity);
@@ -160,11 +174,9 @@ void GameLoop::update(engine::Input &input, float dt) {
 }
 
 void GameLoop::collectRenderData(engine::RenderFrame &frame, engine::Camera &camera) {
-  // Collecting static map texture
   frame.tileVertices = m_staticMapPoints;
-
-  systems::renderSystem(m_registry, frame, camera, m_engine->imageManager); // Entities render
-  uiRender(m_registry, frame, camera);                                      // UI render
+  systems::renderSystem(m_registry, frame, camera, m_engine->imageManager);
+  uiRender(m_registry, frame, camera);
 }
 
 bool GameLoop::isFinished() const { return m_finished; }

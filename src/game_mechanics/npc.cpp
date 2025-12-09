@@ -62,3 +62,14 @@ void gameNpcFollowPlayerSystem(entt::registry &registry, engine::Camera &camera)
     }
   }
 }
+
+void clearDeadNpc(entt::registry &registry) {
+  auto npcView = registry.view<const HP, engine::ChasingPlayer>();
+
+  for (auto npc : npcView) {
+    const auto &hp = npcView.get<const HP>(npc);
+    if (hp.current == 0) {
+      registry.destroy(npc);
+    }
+  }
+}
