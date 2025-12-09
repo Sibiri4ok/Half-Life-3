@@ -22,6 +22,7 @@
 #include "systems.h"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
+#include <cstdio>
 
 const unsigned int DEFAULT_UI_TEXT_SIZE = 30;
 const unsigned int TIMER_TEXT_SIZE = 40;
@@ -128,6 +129,8 @@ void GameLoop::init() {
   uiEntities.kills = m_registry.create();
   uiEntities.timer = m_registry.create();
   uiEntities.fps = m_registry.create();
+  uiEntities.gameSpeed = m_registry.create();
+  uiEntities.pause = entt::null;
 
   std::string hpText = "HP " + std::to_string(hp.current) + "/" + std::to_string(hp.max);
   uiAssets.hp = textToImage(hpText, uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::Red);
@@ -137,6 +140,14 @@ void GameLoop::init() {
   uiAssets.kills = textToImage("Kills 0", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   uiAssets.timer = textToImage("00:00", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   uiAssets.fps = textToImage("FPS 0", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
+  {
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gameSpeed));
+    uiAssets.gameSpeed =
+        textToImage(std::string("Game speed ") + buf + "x", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
+  }
+
+  uiAssets.pause.loadFromFile("assets/ui/pause.png");
 
   UISprite uiHP{};
   uiHP.image = &uiAssets.hp;
@@ -153,24 +164,31 @@ void GameLoop::init() {
   UISprite uiFps{};
   uiFps.image = &uiAssets.fps;
   uiFps.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x - 130.f, 10.f}};
+  UISprite uiGameSpeed{};
+  uiGameSpeed.image = &uiAssets.gameSpeed;
+  uiGameSpeed.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x - 280.f, 40.f}};
 
   m_registry.emplace<UISprite>(uiEntities.hp, uiHP);
   m_registry.emplace<UISprite>(uiEntities.exp, uiExp);
   m_registry.emplace<UISprite>(uiEntities.kills, uiKills);
   m_registry.emplace<UISprite>(uiEntities.timer, uiTimer);
   m_registry.emplace<UISprite>(uiEntities.fps, uiFps);
+  m_registry.emplace<UISprite>(uiEntities.gameSpeed, uiGameSpeed);
 }
 
 void GameLoop::update(engine::Input &input, float dt) {
-  globalTimer += dt;
-  spawnTimer += dt;
-  uiTimer += dt;
   const double alpha = 0.1;
   emaDeltaTime = alpha * dt + (1.0 - alpha) * emaDeltaTime;
 
+  dt *= gameSpeed;
+
+  globalTimer += dt;
+  spawnTimer += dt;
+  uiTimer += dt;
+
   engine::Camera &camera = m_engine->camera;
   spawnMinotaurs();
-  gameInputSystem(m_registry, input);
+  gameInputSystem(m_registry, input, gameSpeed);
   gameNpcFollowPlayerSystem(m_registry, camera);
   gameWeaponSystem(m_registry, dt, m_engine->camera);
   gameMovementSystem(m_registry, tiles, width, height, dt, globalTimer, m_engine->camera);
@@ -216,6 +234,11 @@ sf::Image GameLoop::timerImage() {
 }
 
 void GameLoop::updateUI() {
+  updatePauseOverlay();
+  updateHUD();
+}
+
+void GameLoop::updateHUD() {
   if (uiTimer < 0.3) {
     return;
   }
@@ -236,9 +259,43 @@ void GameLoop::updateUI() {
   uiAssets.timer = timerImage();
   uiAssets.fps =
       textToImage("FPS " + std::to_string(getEmaFps()), uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
+  {
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(gameSpeed));
+    uiAssets.gameSpeed =
+        textToImage(std::string("Game speed ") + buf + "x", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
+  }
 
   uiTimer = 0.0;
   return;
+}
+
+void GameLoop::updatePauseOverlay() {
+  bool hasPause = uiEntities.pause != entt::null && m_registry.valid(uiEntities.pause) &&
+                  m_registry.all_of<UISprite, UIPause>(uiEntities.pause);
+
+  if (gameSpeed == 0.0f) {
+    if (!hasPause && uiAssets.pause.getSize().x > 0 && uiAssets.pause.getSize().y > 0) {
+      auto e = m_registry.create();
+      UISprite sprite{};
+      sprite.image = &uiAssets.pause;
+
+      float w = static_cast<float>(uiAssets.pause.getSize().x);
+      float h = static_cast<float>(uiAssets.pause.getSize().y);
+      sprite.pos = engine::Position{
+          {m_engine->camera.size.x * 0.5f - w * 0.5f, m_engine->camera.size.y * 0.5f - h * 0.5f}};
+      sprite.zIndex = 2;
+
+      m_registry.emplace<UISprite>(e, sprite);
+      m_registry.emplace<UIPause>(e);
+      uiEntities.pause = e;
+    }
+  } else {
+    if (hasPause) {
+      m_registry.destroy(uiEntities.pause);
+      uiEntities.pause = entt::null;
+    }
+  }
 }
 
 void GameLoop::spawnMinotaurs() {

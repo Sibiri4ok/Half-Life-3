@@ -17,7 +17,7 @@ void gameMovementSystem(entt::registry &registry,
     engine::Camera &camera);
 
 void gameAnimationSystem(entt::registry &registry, float dt);
-void gameInputSystem(entt::registry &registry, const engine::Input &input);
+void gameInputSystem(entt::registry &registry, const engine::Input &input, float &gameSpeed);
 
 // Handles all player weapons (projectile + radial) in a single system.
 void gameWeaponSystem(entt::registry &registry, float dt, engine::Camera &camera);

@@ -84,6 +84,8 @@ private:
   double emaDeltaTime = 1.0 / 60.0;
   unsigned int kills = 0;
 
+  float gameSpeed = 1.0;
+
   sf::Font uiFont;
   struct UiAssets {
     sf::Image hp;
@@ -91,6 +93,8 @@ private:
     sf::Image kills;
     sf::Image timer;
     sf::Image fps;
+    sf::Image gameSpeed;
+    sf::Image pause;
   } uiAssets;
   struct UiEntities {
     entt::entity hp{entt::null};
@@ -98,6 +102,8 @@ private:
     entt::entity kills{entt::null};
     entt::entity timer{entt::null};
     entt::entity fps{entt::null};
+    entt::entity gameSpeed{entt::null};
+    entt::entity pause{entt::null};
   } uiEntities;
 
   engine::Engine *m_engine = nullptr; ///< Pointer to the main engine instance
@@ -112,5 +118,7 @@ private:
   int getEmaFps();
   sf::Image timerImage();
   void updateUI();
+  void updateHUD();
+  void updatePauseOverlay();
   void spawnMinotaurs();
 };

@@ -74,3 +74,5 @@ struct Weapon {
 struct Weapons {
   std::array<Weapon, 2> slots;
 };
+
+struct UIPause {};

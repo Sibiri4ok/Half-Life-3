@@ -440,8 +440,36 @@ void gameAnimationSystem(entt::registry &registry, float dt) {
   }
 }
 
-void gameInputSystem(entt::registry &registry, const engine::Input &input) {
+void gameInputSystem(entt::registry &registry, const engine::Input &input, float &gameSpeed) {
   auto view = registry.view<engine::Velocity, engine::Speed, engine::PlayerControlled, engine::Animation>();
+
+  static bool plusPrev = false;
+  static bool minusPrev = false;
+  static bool escPrev = false;
+
+  bool plusNow = input.isKeyDown(sf::Keyboard::Key::Equal);  // '=' / '+'
+  bool minusNow = input.isKeyDown(sf::Keyboard::Key::Hyphen);  // '-' / '_'
+  bool escNow = input.isKeyDown(sf::Keyboard::Key::Escape);
+
+  if (plusNow && !plusPrev) {
+    float next = gameSpeed <= 0.f ? 1.f : gameSpeed + 1.f;
+    if (next > 8.f)
+      next = 8.f;
+    gameSpeed = next;
+  }
+  if (minusNow && !minusPrev && gameSpeed > 0.f) {
+    float next = gameSpeed - 1.f;
+    if (next < 1.f)
+      next = 1.f;
+    gameSpeed = next;
+  }
+  if (escNow && !escPrev) {
+    gameSpeed = (gameSpeed == 0.f) ? 1.f : 0.f;
+  }
+
+  plusPrev = plusNow;
+  minusPrev = minusNow;
+  escPrev = escNow;
 
   for (auto entity : view) {
     auto &vel = view.get<engine::Velocity>(entity);
