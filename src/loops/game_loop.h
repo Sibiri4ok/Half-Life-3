@@ -87,12 +87,14 @@ private:
   sf::Font uiFont;
   struct UiAssets {
     sf::Image hp;
+    sf::Image exp;
     sf::Image kills;
     sf::Image timer;
     sf::Image fps;
   } uiAssets;
   struct UiEntities {
     entt::entity hp{entt::null};
+    entt::entity exp{entt::null};
     entt::entity kills{entt::null};
     entt::entity timer{entt::null};
     entt::entity fps{entt::null};

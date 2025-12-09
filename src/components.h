@@ -19,6 +19,12 @@ struct LastDamageTime {
   double damageCooldown = 0.3; // in seconds
 };
 
+struct Experience {
+  unsigned int level = 0;
+  unsigned int currentXp = 0;
+  unsigned int xpToNextLevel = 100;
+};
+
 // Marks entity as solid for movement/collision.
 // Entities without this component (or with value == false) doens't block movement.
 struct Solid {

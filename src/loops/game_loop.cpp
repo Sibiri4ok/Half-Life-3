@@ -23,10 +23,8 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 
-const unsigned int HP_TEXT_SIZE = 30;
-const unsigned int KILLS_TEXT_SIZE = 30;
+const unsigned int DEFAULT_UI_TEXT_SIZE = 30;
 const unsigned int TIMER_TEXT_SIZE = 40;
-const unsigned int FPS_TEXT_SIZE = 30;
 
 GameLoop::GameLoop() {
   engine::WorldLoader::loadWorldFromJson("assets/worlds/meadow.json", width, height, tileTextures, tiles);
@@ -86,8 +84,10 @@ void GameLoop::init() {
   auto main_hero = systems::createNPC(m_registry, playerStartPos, mainSize, mainHeroClips, 200.f);
   m_registry.emplace<engine::PlayerControlled>(main_hero);
   m_registry.emplace<engine::CastsShadow>(main_hero);
-  HP hp = {100, 100};
+  HP hp{100, 100};
   m_registry.emplace<HP>(main_hero, hp);
+  Experience exp{0, 0, 100};
+  m_registry.emplace<Experience>(main_hero, exp);
   m_registry.emplace<Solid>(main_hero, Solid{true});
   m_registry.emplace<LastDamageTime>(main_hero, LastDamageTime{-1.0});
 
@@ -124,22 +124,29 @@ void GameLoop::init() {
   }
 
   uiEntities.hp = m_registry.create();
+  uiEntities.exp = m_registry.create();
   uiEntities.kills = m_registry.create();
   uiEntities.timer = m_registry.create();
   uiEntities.fps = m_registry.create();
 
   std::string hpText = "HP " + std::to_string(hp.current) + "/" + std::to_string(hp.max);
-  uiAssets.hp = textToImage(hpText, uiFont, HP_TEXT_SIZE, sf::Color::Red);
-  uiAssets.kills = textToImage("Kills 0", uiFont, KILLS_TEXT_SIZE, sf::Color::White);
-  uiAssets.timer = textToImage("00:00", uiFont, TIMER_TEXT_SIZE, sf::Color::White);
-  uiAssets.fps = textToImage("FPS 0", uiFont, FPS_TEXT_SIZE, sf::Color::White);
+  uiAssets.hp = textToImage(hpText, uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::Red);
+  std::string expText = "Level " + std::to_string(exp.level) + " " + std::to_string(exp.currentXp) + "/" +
+                        std::to_string(exp.xpToNextLevel);
+  uiAssets.exp = textToImage(expText, uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::Cyan);
+  uiAssets.kills = textToImage("Kills 0", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
+  uiAssets.timer = textToImage("00:00", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
+  uiAssets.fps = textToImage("FPS 0", uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
 
   UISprite uiHP{};
   uiHP.image = &uiAssets.hp;
   uiHP.pos = engine::Position{sf::Vector2f{10.f, 10.f}};
+  UISprite uiExp{};
+  uiExp.image = &uiAssets.exp;
+  uiExp.pos = engine::Position{sf::Vector2f{10.f, 40.f}};
   UISprite uiKills{};
   uiKills.image = &uiAssets.kills;
-  uiKills.pos = engine::Position{sf::Vector2f{10.f, 40.f}};
+  uiKills.pos = engine::Position{sf::Vector2f{10.f, 70.f}};
   UISprite uiTimer{};
   uiTimer.image = &uiAssets.timer;
   uiTimer.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x / 2.f - 60.f, 10.f}};
@@ -148,6 +155,7 @@ void GameLoop::init() {
   uiFps.pos = engine::Position{sf::Vector2f{m_engine->camera.size.x - 130.f, 10.f}};
 
   m_registry.emplace<UISprite>(uiEntities.hp, uiHP);
+  m_registry.emplace<UISprite>(uiEntities.exp, uiExp);
   m_registry.emplace<UISprite>(uiEntities.kills, uiKills);
   m_registry.emplace<UISprite>(uiEntities.timer, uiTimer);
   m_registry.emplace<UISprite>(uiEntities.fps, uiFps);
@@ -159,7 +167,6 @@ void GameLoop::update(engine::Input &input, float dt) {
   uiTimer += dt;
   const double alpha = 0.1;
   emaDeltaTime = alpha * dt + (1.0 - alpha) * emaDeltaTime;
-  updateUI();
 
   engine::Camera &camera = m_engine->camera;
   spawnMinotaurs();
@@ -170,13 +177,23 @@ void GameLoop::update(engine::Input &input, float dt) {
   gameProjectileDamageSystem(m_registry, dt, m_engine->camera);
   gameAnimationSystem(m_registry, dt);
   updatePlayerDamageColor(m_registry, globalTimer);
-  kills += clearDeadNpc(m_registry);
 
-  auto playerView = m_registry.view<const engine::Position, const engine::PlayerControlled>();
-  for (auto entity : playerView) {
-    const auto &pos = playerView.get<const engine::Position>(entity);
-    m_engine->camera.position = m_engine->camera.worldToScreen(pos.value);
+  auto playerView = m_registry.view<const engine::Position, Experience, engine::PlayerControlled>();
+  unsigned int killed = clearDeadNpc(m_registry);
+  kills += killed;
+  Experience &exp = playerView.get<Experience>(*(playerView.begin()));
+  const unsigned int expPerKill = 10;
+  exp.currentXp += killed * expPerKill;
+  while (exp.currentXp >= exp.xpToNextLevel) {
+    exp.currentXp -= exp.xpToNextLevel;
+    exp.level += 1;
+    exp.xpToNextLevel = static_cast<unsigned int>(exp.xpToNextLevel * 1.3f);
   }
+  updateUI();
+
+  // Move camera
+  const auto &pos = playerView.get<const engine::Position>(*(playerView.begin()));
+  m_engine->camera.position = m_engine->camera.worldToScreen(pos.value);
 }
 
 void GameLoop::collectRenderData(engine::RenderFrame &frame, engine::Camera &camera) {
@@ -202,16 +219,23 @@ void GameLoop::updateUI() {
   if (uiTimer < 0.3) {
     return;
   }
-  auto playerView = m_registry.view<const engine::PlayerControlled, const HP>();
+  auto playerView = m_registry.view<const engine::PlayerControlled, const HP, const Experience>();
   HP hp = playerView.get<HP>(*(playerView.begin()));
   uiAssets.hp = textToImage("HP " + std::to_string(hp.current) + "/" + std::to_string(hp.max),
       uiFont,
-      HP_TEXT_SIZE,
+      DEFAULT_UI_TEXT_SIZE,
       sf::Color::Red);
 
-  uiAssets.kills = textToImage("Kills " + std::to_string(kills), uiFont, KILLS_TEXT_SIZE, sf::Color::White);
+  Experience exp = playerView.get<Experience>(*(playerView.begin()));
+  std::string expText = "Level " + std::to_string(exp.level) + " " + std::to_string(exp.currentXp) + "/" +
+                        std::to_string(exp.xpToNextLevel);
+  uiAssets.exp = textToImage(expText, uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::Cyan);
+
+  uiAssets.kills =
+      textToImage("Kills " + std::to_string(kills), uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
   uiAssets.timer = timerImage();
-  uiAssets.fps = textToImage("FPS " + std::to_string(getEmaFps()), uiFont, FPS_TEXT_SIZE, sf::Color::White);
+  uiAssets.fps =
+      textToImage("FPS " + std::to_string(getEmaFps()), uiFont, DEFAULT_UI_TEXT_SIZE, sf::Color::White);
 
   uiTimer = 0.0;
   return;
